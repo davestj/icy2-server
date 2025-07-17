@@ -1,0 +1,100 @@
+metadata:
+  project: mcaster1.com / mcaster1DNSA - ICY2-SERVER
+  version: 1.1.1
+  merged_by: davestj
+  merged_on: '2025-07-16T12:00:00Z'
+  notes: Unified configuration for DNAS hybrid server with full examples and comments.
+
+server:
+  name: ICY2 - DNAS SPEC Server v1.1.1
+  description: Digital Network Audio Server - Shoutcast/Icecast Clone
+  version: 1.1.1
+  admin_email: admin@mcaster1.com
+
+network:
+  http_port: 3334
+  https_port: 8443
+  admin_port: 8001
+  bind_address: 0.0.0.0
+  max_connections: 1000
+  connection_timeout: 30
+  keepalive_timeout: 15
+
+ssl:
+  enabled: true
+  cert_file: ssl/selfsigned.crt
+  key_file: ssl/selfsigned.key
+  chain_file: ssl/other-ss-chain.crt
+  protocols:
+  - TLSv1.2
+  - TLSv1.3
+  cipher_suites: ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS
+
+authentication:
+  enabled: true
+  token_secret: your-secret-key-change-this-in-production
+  token_expiration: 24
+  allow_anonymous_listeners: true
+  require_auth_for_broadcast: true
+  max_failed_attempts: 5
+  lockout_duration: 30
+
+mount_points:
+  /stream:
+    name: Main Stream
+    description: Primary streaming mount point
+    max_listeners: 100
+    public: true
+    allow_recording: false
+    require_auth: true
+    content_types:
+    - audio/mpeg
+    - audio/aac
+    - audio/ogg
+    min_bitrate: 32
+    max_bitrate: 320
+    metadata:
+      enabled: true
+      interval: 8192
+
+icy_protocol:
+  legacy_support: true
+  icy2_support: true
+  default_metaint: 8192
+  server_name: DNAS/1.1.1
+  icy2_features:
+    hashtag_arrays: true
+    emoji_support: true
+    social_integration: true
+    json_metadata: true
+
+logging:
+  level: INFO
+  file_logging:
+    enabled: true
+    log_dir: logs
+    error_file: logs/error.log
+    access_log: logs/access.log
+    security_log: logs/security.log
+    max_size_mb: 100
+    max_files: 10
+    timestamps: true
+    format: json
+
+php_fpm:
+  enabled: true
+  socket_path: /run/php/php8.2-fpm-icy2.sock
+  document_root: www
+  index_files:
+  - index.php
+  - index.html
+  timeout: 90
+  buffer_size: 64k
+  php_version: "8.2"
+
+api:
+  enabled: true
+  base_url: /api/v1
+  auth_token_required: false
+  rate_limit_per_minute: 120
+  output_format: json

@@ -1,0 +1,207 @@
+/**
+ * File: config.h.in
+ * Path: /var/www/mcaster1.com/DNAS/icy2-server/config.h.in
+ * Author: davestj@gmail.com (David St. John)
+ * Created: 2025-07-16
+ * Purpose: I created this configuration header template that autotools uses to generate
+ *          the final config.h file with all the detected features and version information.
+ *          This ensures all source files have access to build-time configuration.
+ * 
+ * Reason: I need a centralized configuration header that provides feature detection,
+ *         version information, and build settings to all source files in a consistent
+ *         and portable way across different platforms and build environments.
+ *
+ * Changelog:
+ * 2025-07-16 - Initial config header template with version and feature definitions
+ * 2025-07-16 - Added SSL, PHP-FPM, and library availability detection
+ * 2025-07-16 - Included platform-specific defines and compiler information
+ * 2025-07-16 - Added build timestamp and configuration information
+ * 2025-07-16 - Fixed ICY2_VERSION_STRING definition for compilation
+ *
+ * Next Dev Feature: I plan to add more feature detection as dependencies grow
+ * Git Commit: feat: create comprehensive config header template for autotools
+ *
+ * TODO: Add runtime feature detection, plugin system support, advanced optimization flags
+ */
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* I'm defining the package information that autotools will substitute */
+#undef PACKAGE_NAME
+#undef PACKAGE_VERSION
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_URL
+#undef PACKAGE_BUGREPORT
+
+/* I'm defining version information that the source code expects */
+#undef ICY2_VERSION_STRING
+#undef ICY2_VERSION_MAJOR
+#undef ICY2_VERSION_MINOR
+#undef ICY2_VERSION_PATCH
+
+/* I'm defining build information */
+#undef ICY2_BUILD_DATE
+#undef ICY2_BUILD_TIME
+
+/* I'm defining feature availability flags */
+#undef HAVE_OPENSSL
+#undef HAVE_YAML_CPP
+#undef HAVE_FCGI
+
+/* I'm defining SSL/TLS support */
+#undef ICY2_SSL_ENABLED
+
+/* I'm defining PHP-FPM support */
+#undef ICY2_PHP_ENABLED
+
+/* I'm defining standard C library headers */
+#undef HAVE_STDIO_H
+#undef HAVE_STDLIB_H
+#undef HAVE_STRING_H
+#undef HAVE_INTTYPES_H
+#undef HAVE_STDINT_H
+#undef HAVE_STRINGS_H
+#undef HAVE_SYS_STAT_H
+#undef HAVE_SYS_TYPES_H
+#undef HAVE_UNISTD_H
+#undef HAVE_DLFCN_H
+
+/* I'm defining system-specific headers */
+#undef HAVE_SYS_SOCKET_H
+#undef HAVE_NETINET_IN_H
+#undef HAVE_ARPA_INET_H
+#undef HAVE_FCNTL_H
+#undef HAVE_SYS_EPOLL_H
+#undef HAVE_POLL_H
+
+/* I'm defining network library availability */
+#undef HAVE_SOCKET
+#undef HAVE_BIND
+#undef HAVE_LISTEN
+#undef HAVE_ACCEPT
+
+/* I'm defining threading support */
+#undef HAVE_PTHREAD_H
+#undef HAVE_PTHREAD_CREATE
+#undef PTHREAD_CREATE_JOINABLE
+
+/* I'm defining SSL library functions */
+#undef HAVE_SSL_LIBRARY_INIT
+#undef HAVE_SSL_LOAD_ERROR_STRINGS
+#undef HAVE_OPENSSL_ADD_ALL_ALGORITHMS
+
+/* I'm defining FastCGI library functions */
+#undef HAVE_FCGI_ACCEPT
+#undef HAVE_FCGIAPP_H
+
+/* I'm defining YAML library functions */
+#undef HAVE_YAML_PARSER_INITIALIZE
+#undef HAVE_YAML_DOCUMENT_GET_ROOT_NODE
+
+/* I'm defining compiler-specific attributes */
+#ifdef __GNUC__
+#  define ICY2_LIKELY(x)     __builtin_expect((x), 1)
+#  define ICY2_UNLIKELY(x)   __builtin_expect((x), 0)
+#  define ICY2_UNUSED        __attribute__((unused))
+#  define ICY2_DEPRECATED    __attribute__((deprecated))
+#else
+#  define ICY2_LIKELY(x)     (x)
+#  define ICY2_UNLIKELY(x)   (x)
+#  define ICY2_UNUSED
+#  define ICY2_DEPRECATED
+#endif
+
+/* I'm defining platform-specific macros */
+#ifdef _WIN32
+#  define ICY2_PLATFORM_WINDOWS
+#  define ICY2_PATH_SEPARATOR '\\'
+#  define ICY2_LINE_ENDING "\r\n"
+#elif defined(__linux__)
+#  define ICY2_PLATFORM_LINUX
+#  define ICY2_PATH_SEPARATOR '/'
+#  define ICY2_LINE_ENDING "\n"
+#elif defined(__APPLE__)
+#  define ICY2_PLATFORM_MACOS
+#  define ICY2_PATH_SEPARATOR '/'
+#  define ICY2_LINE_ENDING "\n"
+#else
+#  define ICY2_PLATFORM_UNKNOWN
+#  define ICY2_PATH_SEPARATOR '/'
+#  define ICY2_LINE_ENDING "\n"
+#endif
+
+/* I'm defining architecture-specific macros */
+#if defined(__x86_64__) || defined(_M_X64)
+#  define ICY2_ARCH_X86_64
+#elif defined(__i386__) || defined(_M_IX86)
+#  define ICY2_ARCH_X86
+#elif defined(__aarch64__)
+#  define ICY2_ARCH_ARM64
+#elif defined(__arm__)
+#  define ICY2_ARCH_ARM
+#else
+#  define ICY2_ARCH_UNKNOWN
+#endif
+
+/* I'm defining debug mode settings */
+#ifdef DEBUG
+#  define ICY2_DEBUG_MODE 1
+#  define ICY2_LOG_LEVEL_DEFAULT 0  /* DEBUG level */
+#else
+#  define ICY2_DEBUG_MODE 0
+#  define ICY2_LOG_LEVEL_DEFAULT 1  /* INFO level */
+#endif
+
+/* I'm defining buffer size constants */
+#define ICY2_DEFAULT_BUFFER_SIZE        8192
+#define ICY2_MAX_HEADER_SIZE           16384
+#define ICY2_MAX_URI_LENGTH             2048
+#define ICY2_MAX_HOSTNAME_LENGTH         255
+#define ICY2_DEFAULT_METADATA_INTERVAL  8192
+
+/* I'm defining connection limits */
+#define ICY2_DEFAULT_MAX_CONNECTIONS    1000
+#define ICY2_DEFAULT_CONNECTION_TIMEOUT   30
+#define ICY2_DEFAULT_KEEPALIVE_TIMEOUT    15
+
+/* I'm defining default port numbers */
+#define ICY2_DEFAULT_HTTP_PORT          3334
+#define ICY2_DEFAULT_HTTPS_PORT         8443
+#define ICY2_DEFAULT_ADMIN_PORT         8001
+
+/* I'm defining default configuration paths */
+#define ICY2_DEFAULT_CONFIG_PATH        "/etc/icy2-server/mcaster1.yaml"
+#define ICY2_DEFAULT_SSL_CERT_PATH      "/var/www/mcaster1.com/DNAS/icy2-server/ssl/selfsigned.crt"
+#define ICY2_DEFAULT_SSL_KEY_PATH       "/var/www/mcaster1.com/DNAS/icy2-server/ssl/selfsigned.key"
+#define ICY2_DEFAULT_LOG_DIR            "/var/www/mcaster1.com/DNAS/icy2-server/logs"
+#define ICY2_DEFAULT_DOCUMENT_ROOT      "/var/www/mcaster1.com/DNAS/icy2-server/www"
+
+/* I'm defining logging configuration */
+#define ICY2_DEFAULT_LOG_FILE           "/var/www/mcaster1.com/DNAS/icy2-server/logs/icy2-server.log"
+#define ICY2_DEFAULT_ERROR_LOG          "/var/www/mcaster1.com/DNAS/icy2-server/logs/error.log"
+#define ICY2_DEFAULT_ACCESS_LOG         "/var/www/mcaster1.com/DNAS/icy2-server/logs/access.log"
+
+/* I'm defining security settings */
+#define ICY2_DEFAULT_TOKEN_EXPIRATION   24    /* hours */
+#define ICY2_DEFAULT_MAX_FAILED_ATTEMPTS 5
+#define ICY2_DEFAULT_LOCKOUT_DURATION   30    /* minutes */
+
+/* I'm defining ICY protocol settings */
+#define ICY2_PROTOCOL_VERSION           "2.1"
+#define ICY2_SERVER_STRING              "ICY2-SERVER/1.1.1"
+#define ICY2_USER_AGENT                 "ICY2-SERVER/1.1.1 (Linux; DNAS)"
+
+/* I'm ensuring compatibility with C++ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* I'm declaring any C functions that might be needed */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* CONFIG_H */
