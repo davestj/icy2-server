@@ -73,18 +73,6 @@ enum class ConnectionState {
  * This allows me to process HTTP, ICY, and streaming connections differently
  * FIXED: I added all the connection types that server.cpp actually uses
  */
-enum class ConnectionType {
-    HTTP,           // I'm handling standard HTTP requests
-    HTTPS,          // I'm handling HTTPS requests
-    ICY_SOURCE,     // I'm receiving an ICY source stream
-    ICY_LISTENER,   // I'm serving an ICY stream to a listener
-    PHP_FPM,        // I'm processing PHP requests via FastCGI
-    API,            // I'm handling REST API requests
-    WEBSOCKET,      // I'm handling WebSocket connections
-    ADMIN,          // I'm handling administrative connections
-    LISTENER,       // I'm handling standard listener connections
-    SOURCE          // I'm handling source broadcasting connections
-};
 
 /**
  * I'm defining the client connection structure
@@ -119,20 +107,6 @@ struct ClientConnection {
  * I'm defining the server statistics structure
  * This tracks comprehensive server performance metrics
  */
-struct ServerStatistics {
-    std::chrono::steady_clock::time_point start_time;  // I record server start time
-    std::atomic<uint64_t> total_connections{0};        // I count total connections
-    std::atomic<uint64_t> active_connections{0};       // I count active connections
-    std::atomic<uint64_t> ssl_connections{0};          // I count SSL connections
-    std::atomic<uint64_t> http_requests{0};            // I count HTTP requests
-    std::atomic<uint64_t> icy_connections{0};          // I count ICY connections
-    std::atomic<uint64_t> api_requests{0};             // I count API requests
-    std::atomic<uint64_t> php_requests{0};             // I count PHP requests
-    std::atomic<uint64_t> total_bytes_sent{0};         // I track total bytes sent
-    std::atomic<uint64_t> total_bytes_received{0};     // I track total bytes received
-    std::atomic<uint64_t> failed_connections{0};       // I count failed connections
-    std::atomic<uint64_t> authentication_failures{0};  // I count auth failures
-};
 
 /**
  * I'm defining the main ICY2Server class

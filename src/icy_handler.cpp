@@ -749,7 +749,7 @@ bool ICYHandler::parse_icy_headers(const std::map<std::string, std::string>& hea
     if (hashtag_it != headers.end()) {
         // I parse JSON-like hashtag array
         std::string hashtag_json = hashtag_it->second;
-        std::regex hashtag_regex(R"("([^"]+)")");
+        std::regex hashtag_regex("\"([^\"]+)\"");
         std::sregex_iterator iter(hashtag_json.begin(), hashtag_json.end(), hashtag_regex);
         std::sregex_iterator end;
         

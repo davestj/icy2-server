@@ -111,6 +111,10 @@ struct CertificateInfo {
  * This defines how SSL contexts should be configured
  */
 struct SSLContextConfig {
+    std::string cert_file;                  // I specify SSL certificate file path
+    std::string key_file;                   // I specify SSL private key file path
+    std::string chain_file;                 // I specify SSL certificate chain file
+
     std::vector<std::string> protocols;     // I define allowed TLS protocols
     std::string cipher_suites;              // I specify allowed cipher suites
     std::string curve_list;                 // I define elliptic curves for ECDHE

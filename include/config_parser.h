@@ -73,185 +73,57 @@ struct MetadataConfig {
  * I'm defining the network configuration structure
  * This contains all network-related settings
  */
-struct NetworkConfig {
-    int http_port;                  // I store the HTTP port
-    int https_port;                 // I store the HTTPS port
-    int admin_port;                 // I store the admin interface port
-    std::string bind_address;       // I store the bind IP address
-    int max_connections;            // I store the maximum connection limit
-    int connection_timeout;         // I store connection timeout in seconds
-    int keepalive_timeout;          // I store keepalive timeout in seconds
-};
 
 /**
  * I'm defining the SSL configuration structure
  * This contains SSL/TLS settings
  */
-struct SSLConfig {
-    bool enabled;                   // I indicate if SSL is enabled
-    std::string cert_file;          // I store the certificate file path
-    std::string key_file;           // I store the private key file path
-    std::string chain_file;         // I store the certificate chain file path
-    std::vector<std::string> protocols; // I store supported TLS protocols
-    std::string cipher_suites;      // I store allowed cipher suites
-};
 
 /**
  * I'm defining the authentication configuration structure
  * This contains authentication and security settings
  */
-struct AuthenticationConfig {
-    bool enabled;                   // I indicate if authentication is enabled
-    std::string token_secret;       // I store the JWT token secret
-    int token_expiration;           // I store token expiration time in hours
-    bool allow_anonymous_listeners; // I indicate if anonymous listeners are allowed
-    bool require_auth_for_broadcast; // I indicate if broadcasters need authentication
-    int max_failed_attempts;       // I store maximum failed login attempts
-    int lockout_duration;           // I store lockout duration in minutes
-};
 
 /**
  * I'm defining the ICY protocol configuration structure
  * This contains settings for ICY protocol handling
  */
-struct ICYProtocolConfig {
-    bool legacy_support;            // I indicate if ICY 1.x support is enabled
-    bool icy2_support;              // I indicate if ICY 2.0+ support is enabled
-    int default_metaint;            // I store default metadata interval
-    std::string server_name;        // I store the server identification string
-    
-    struct {
-        bool hashtag_arrays;        // I indicate if hashtag arrays are supported
-        bool emoji_support;         // I indicate if emoji metadata is supported
-        bool social_integration;    // I indicate if social media integration is enabled
-        bool json_metadata;         // I indicate if JSON metadata format is supported
-    } icy2_features;
-};
 
 /**
  * I'm defining the logging configuration structure
  * This contains all logging-related settings
  */
-struct LoggingConfig {
-    std::string level;              // I store the log level (DEBUG, INFO, etc.)
-    
-    struct {
-        bool enabled;               // I indicate if file logging is enabled
-        std::string log_dir;        // I store the log directory path
-        std::string error_file;     // I store the error log file path
-        std::string access_log;     // I store the access log file path
-        std::string security_log;   // I store the security log file path
-        int max_size_mb;            // I store maximum log file size in MB
-        int max_files;              // I store maximum number of log files to keep
-        bool timestamps;            // I indicate if timestamps should be included
-        std::string format;         // I store the log format (text, json)
-    } file_logging;
-    
-    struct {
-        bool enabled;               // I indicate if syslog is enabled
-        std::string protocol;       // I store the syslog protocol (udp, tcp)
-        std::string host;           // I store the syslog server host
-        int port;                   // I store the syslog server port
-        std::string facility;       // I store the syslog facility
-        std::string tag;            // I store the syslog tag
-        bool include_level;         // I indicate if log level should be included
-        bool include_source;        // I indicate if source info should be included
-    } syslog;
-};
 
 /**
  * I'm defining the YP directory configuration structure
  * This contains settings for directory server integration
  */
-struct YPDirectoryConfig {
-    bool enabled;                   // I indicate if YP directory listing is enabled
-    
-    struct {
-        std::string name;           // I store the directory server name
-        std::string url;            // I store the directory server URL
-        std::string protocol;       // I store the protocol type
-        bool enabled;               // I indicate if this directory is enabled
-        int update_interval;        // I store update interval in seconds
-    } servers[3];                   // I support up to 3 directory servers
-    
-    struct {
-        std::string genre;          // I store the default genre
-        std::string description;    // I store the default description
-        std::string url;            // I store the default URL
-        bool public_listing;        // I indicate default public listing preference
-    } default_info;
-};
 
 /**
  * I'm defining the PHP configuration structure
  * This contains PHP-FPM integration settings
  */
-struct PHPConfig {
-    bool enabled;                   // I indicate if PHP-FPM is enabled
-    std::string socket_path;        // I store the PHP-FPM socket path
-    std::string document_root;      // I store the web document root
-    std::vector<std::string> index_files; // I store index file names
-    int timeout;                    // I store request timeout in seconds
-    std::string buffer_size;        // I store buffer size
-    std::string php_version;        // I store PHP version requirement
-};
 
 /**
  * I'm defining the API configuration structure
  * This contains REST API settings
  */
-struct APIConfig {
-    bool enabled;                   // I indicate if the API is enabled
-    std::string base_url;           // I store the API base URL path
-    bool auth_token_required;       // I indicate if API requires authentication
-    int rate_limit_per_minute;      // I store rate limiting setting
-    std::string output_format;      // I store default output format
-};
 
 /**
  * I'm defining the performance configuration structure
  * This contains performance tuning settings
  */
-struct PerformanceConfig {
-    int worker_threads;             // I store number of worker threads
-    int buffer_size;                // I store buffer size in bytes
-    int max_memory_per_connection;  // I store memory limit per connection in KB
-    bool connection_pooling;        // I indicate if connection pooling is enabled
-    int thread_pool_size;           // I store thread pool size
-    bool enable_compression;        // I indicate if compression is enabled
-};
 
 /**
  * I'm defining the development configuration structure
  * This contains development and debugging settings
  */
-struct DevelopmentConfig {
-    bool debug_mode;                // I indicate if debug mode is enabled
-    bool enable_cors;               // I indicate if CORS is enabled
-    std::vector<std::string> cors_origins; // I store allowed CORS origins
-    bool log_requests;              // I indicate if request logging is enabled
-    bool mock_mode;                 // I indicate if mock mode is enabled
-};
 
 /**
  * I'm defining the main server configuration structure
  * This contains all configuration sections
  * Note: MountPointConfig comes from common_types.h to avoid redefinition
  */
-struct ServerConfig {
-    MetadataConfig metadata;        // I store project metadata
-    NetworkConfig network;          // I store network settings
-    SSLConfig ssl;                  // I store SSL settings
-    AuthenticationConfig authentication; // I store authentication settings
-    MountPointMap mount_points;     // I store mount point configs (using common type)
-    ICYProtocolConfig icy_protocol; // I store ICY protocol settings
-    LoggingConfig logging;          // I store logging settings
-    YPDirectoryConfig yp_directories; // I store YP directory settings
-    PHPConfig php_fmp;              // I store PHP-FPM settings
-    APIConfig api;                  // I store API settings
-    PerformanceConfig performance;  // I store performance settings
-    DevelopmentConfig development;  // I store development settings
-};
 
 /**
  * I'm defining the configuration metadata structure

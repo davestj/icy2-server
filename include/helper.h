@@ -54,13 +54,6 @@ namespace icy2 {
  * I'm defining the LogLevel enumeration
  * This fixes the "LogLevel does not name a type" errors
  */
-enum class LogLevel {
-    DEBUG = 0,      // I provide detailed debugging information
-    INFO = 1,       // I provide general information messages
-    WARNING = 2,    // I provide warning conditions
-    ERROR = 3,      // I provide error conditions  
-    CRITICAL = 4    // I provide critical system errors
-};
 
 /**
  * I'm defining the SystemInfo structure
@@ -210,7 +203,7 @@ public:
      * I'm creating the current timestamp method
      * This returns ISO 8601 formatted timestamp
      */
-    std::string get_current_timestamp();
+    std::string get_current_timestamp(const std::string& format = "");
 
     /**
      * I'm creating the UUID generation method

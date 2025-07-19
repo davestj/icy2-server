@@ -40,6 +40,8 @@
 
 namespace icy2 {
 
+
+
 /**
  * I'm defining version information that the entire system uses
  * This ensures consistent version reporting across all components
@@ -151,14 +153,21 @@ enum class ServerMode {
  * This defines all network-related settings
  */
 struct NetworkConfig {
-    std::string bind_address = "0.0.0.0";      // I set the bind IP address
-    uint16_t http_port = 3334;                 // I set the HTTP port
-    uint16_t https_port = 8443;                // I set the HTTPS port
-    uint16_t admin_port = 8001;                // I set the admin port
-    uint32_t max_connections = 1000;           // I limit concurrent connections
-    uint32_t connection_timeout = 30;          // I set connection timeout seconds
-    uint32_t keepalive_timeout = 15;           // I set keep-alive timeout seconds
-    bool enable_ipv6 = false;                  // I control IPv6 support
+    std::string bind_address;
+    uint16_t http_port;
+    uint16_t https_port;
+    uint16_t admin_port;
+    int max_connections;
+    int connection_timeout;
+    int keepalive_timeout;
+    int buffer_size;
+    bool enable_compression;
+    int worker_threads;
+    bool connection_pooling;
+    int thread_pool_size;
+    int max_memory_per_connection;
+    bool enable_cors;
+    std::vector<std::string> cors_origins;
 };
 
 /**
@@ -195,20 +204,35 @@ struct AuthConfig {
  * This defines settings for individual streaming endpoints
  */
 struct MountPointConfig {
+
     std::string name;                           // I set the mount point display name
+
     std::string description;                    // I provide mount point description
+
     uint32_t max_listeners = 100;               // I limit concurrent listeners
+
     bool public_listing = true;                 // I control directory listing
+
     bool allow_recording = false;               // I control recording permission
+
     bool require_authentication = false;        // I control access requirements
+
     std::vector<std::string> content_types;     // I specify allowed content types
+
     uint32_t min_bitrate = 32;                  // I set minimum bitrate kbps
+
     uint32_t max_bitrate = 320;                 // I set maximum bitrate kbps
+
     std::string password;                       // I set mount-specific password
+
     std::string fallback_mount;                 // I specify fallback mount point
+
     bool metadata_enabled = true;               // I control metadata support
+
     uint32_t metadata_interval = 8192;          // I set metadata interval bytes
+
 };
+
 
 /**
  * I'm creating a structure for ICY metadata
@@ -230,6 +254,18 @@ struct ICYMetadata {
     std::string certificate_issuer;             // I set icy-meta-certissuer-id
     std::string root_ca;                        // I set icy-meta-cert-rootca
     std::string certificate;                    // I set icy-meta-certificate
+    
+    // I am adding implementation-specific members for icy_handler compatibility
+    struct {
+        std::string name;
+        std::string description;
+        bool public_listing = false;
+        uint32_t metadata_interval = 8192;
+    } legacy;
+    
+    std::chrono::system_clock::time_point created_at;
+    std::chrono::system_clock::time_point updated_at;
+    uint64_t sequence_number = 0;
     std::string verification_status;            // I set verification status
 
     // I'm defining audio and podcast metadata
@@ -275,6 +311,29 @@ struct ICYMetadata {
  * This tracks comprehensive performance metrics
  */
 struct ServerStatistics {
+    
+    // I am implementing a custom copy constructor to handle atomic members
+    ServerStatistics(const ServerStatistics& other) 
+        : start_time(other.start_time)
+        , total_connections(other.total_connections.load())
+        , active_connections(other.active_connections.load())
+        , ssl_connections(other.ssl_connections.load())
+        , http_requests(other.http_requests.load())
+        , icy_connections(other.icy_connections.load())
+        , api_requests(other.api_requests.load())
+        , php_requests(other.php_requests.load())
+        , total_bytes_sent(other.total_bytes_sent.load())
+        , total_bytes_received(other.total_bytes_received.load())
+        , failed_connections(other.failed_connections.load())
+        , authentication_failures(other.authentication_failures.load())
+        , mount_points_active(other.mount_points_active.load())
+        , total_listeners(other.total_listeners.load())
+        , peak_concurrent_listeners(other.peak_concurrent_listeners.load())
+    {}
+    
+    // I am implementing default constructor
+    ServerStatistics() = default;
+
     std::chrono::steady_clock::time_point start_time;  // I record server start time
     std::atomic<uint64_t> total_connections{0};        // I count total connections
     std::atomic<uint64_t> active_connections{0};       // I count active connections
@@ -311,6 +370,77 @@ using TimePoint = std::chrono::steady_clock::time_point;
 using Duration = std::chrono::steady_clock::duration;
 using HeaderMap = std::map<std::string, std::string>;
 using ParameterMap = std::unordered_map<std::string, std::string>;
+
+struct AuthenticationConfig {
+    bool enabled = true;
+    std::string token_secret;
+    int token_expiration = 24;
+    int token_expiration_hours = 24;
+    bool allow_anonymous_listeners = true;
+    bool require_auth_for_broadcast = true;
+    int max_failed_attempts = 5;
+    int lockout_duration = 30;
+    int lockout_duration_minutes = 30;
+};
+
+struct ICYProtocolConfig {
+    bool legacy_support = true;
+    bool icy2_support = true;
+    int default_metaint = 8192;
+    std::string server_name;
+};
+
+struct LoggingConfig {
+    std::string level;
+    bool enabled = true;
+};
+
+struct YPDirectoryConfig {
+    bool enabled = false;
+};
+
+struct PHPConfig {
+    bool enabled = true;
+    std::string socket_path;
+    std::string document_root;
+    std::vector<std::string> index_files;
+    int timeout_seconds = 90;
+};
+
+struct PerformanceConfig {
+    int worker_threads = 4;
+};
+
+struct DevelopmentConfig {
+    bool debug_mode = false;
+};
+
+struct APIConfig {
+    bool enabled = true;
+    std::string base_url;
+};
+
+
+using MountPointMap = std::unordered_map<std::string, MountPointConfig>;
+
+struct ServerConfig {
+    std::string config_file_path;
+    std::string name;
+    std::string description;
+    std::string version;
+    std::string admin_email;
+    NetworkConfig network;
+    SSLConfig ssl;
+    AuthenticationConfig authentication;
+    MountPointMap mount_points;
+    ICYProtocolConfig icy_protocol;
+    LoggingConfig logging;
+    YPDirectoryConfig yp_directories;
+    PHPConfig php_fmp;
+    APIConfig api;
+    PerformanceConfig performance;
+    DevelopmentConfig development;
+};
 
 } // namespace icy2
 

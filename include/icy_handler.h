@@ -37,6 +37,7 @@
 #include <chrono>
 #include <regex>
 #include <functional>
+#include "common_types.h"
 
 namespace icy2 {
 
@@ -44,13 +45,6 @@ namespace icy2 {
  * I'm defining the ICY protocol version enumeration
  * This helps me handle different protocol versions appropriately
  */
-enum class ICYVersion {
-    ICY_1_0,        // I support legacy SHOUTcast v1 protocol
-    ICY_1_1,        // I support SHOUTcast v2 protocol  
-    ICY_2_0,        // I support ICY-META v2.0 protocol
-    ICY_2_1,        // I support ICY-META v2.1+ full specification
-    ICECAST2        // I support Icecast2 mount point protocol
-};
 
 /**
  * I'm defining verification status levels for the ICY 2.0+ certificate system
@@ -183,61 +177,11 @@ struct AuthenticationInfo {
  * I'm creating the comprehensive ICY 2.0+ metadata structure
  * This combines all metadata types into a unified system
  */
-struct ICYMetadata {
-    // I'm including legacy compatibility fields
-    LegacyICYMetadata legacy;
-
-    // I'm adding ICY 2.0+ specific fields
-    std::string metadata_version;         // I store protocol version (icy-metadata-version)
-    std::string dj_handle;               // I track current DJ (icy-meta-dj-handle)
-    std::string language;                // I store content language (icy-meta-language)
-    int duration_seconds;                // I track content duration (icy-meta-duration)
-    
-    // I'm including emoji and hashtag support
-    std::vector<std::string> emojis;     // I store mood emojis (icy-meta-emoji)
-    std::vector<std::string> hashtags;   // I track searchable tags (icy-meta-hashtag-array)
-    
-    // I'm adding content classification
-    bool nsfw_content;                   // I flag adult content (icy-meta-nsfw)
-    bool ai_generated;                   // I flag AI content (icy-meta-ai-generator)
-    std::string geo_region;              // I store geographic region (icy-meta-geo-region)
-    
-    // I'm including specialized metadata structures
-    VideoMetadata video;                 // I embed video metadata
-    SocialMediaInfo social;              // I embed social media info
-    PodcastMetadata podcast;             // I embed podcast metadata
-    AuthenticationInfo auth;             // I embed authentication info
-    
-    // I'm adding timestamps and tracking
-    std::chrono::system_clock::time_point created_at;  // I track when metadata was created
-    std::chrono::system_clock::time_point updated_at;  // I track last update time
-    std::string source_ip;               // I store the source IP address
-    uint64_t sequence_number;            // I track metadata sequence
-};
 
 /**
  * I'm creating a structure for mount point configuration
  * This defines how each stream endpoint behaves
  */
-struct MountPointConfig {
-    std::string name;                     // I store the display name
-    std::string description;              // I keep the description
-    int max_listeners;                    // I limit concurrent listeners
-    bool public_listing;                  // I flag directory visibility
-    bool allow_recording;                 // I control recording permissions
-    bool require_auth;                    // I enforce authentication
-    std::vector<std::string> content_types; // I define allowed content types
-    int min_bitrate;                      // I set minimum bitrate
-    int max_bitrate;                      // I set maximum bitrate
-    bool metadata_enabled;                // I control metadata injection
-    int metadata_interval;                // I set metadata frequency
-    std::string fallback_mount;           // I define fallback stream
-    int connection_timeout;               // I set connection timeout
-    bool ssl_required;                    // I enforce SSL connections
-    std::vector<std::string> allowed_ips; // I restrict source IPs
-    std::string password;                 // I store source password
-    std::string admin_password;           // I store admin password
-};
 
 /**
  * I'm creating a structure to track active listeners
