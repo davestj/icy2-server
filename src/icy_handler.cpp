@@ -1,22 +1,25 @@
 // File: /var/www/mcaster1.com/DNAS/icy2-server/src/icy_handler.cpp
 // Author: davestj@gmail.com (David St. John)
 // Created: 2025-07-16
-// Title: ICY Protocol Handler Implementation - Corrected for Debian 12 Linux
+// Title: ICY Protocol Handler Implementation - Final Corrected Version for Debian 12 Linux
 // Purpose: I created this implementation to provide complete ICY 1.x and ICY 2.0+ protocol
-//          support using the actual ICYMetadata structure from common_types.h
-// Reason: I needed to align the implementation with the actual structure definitions
-//         instead of using imagined nested structures, and fix all const-correctness issues
+//          support using the actual ICYMetadata structure from common_types.h with all
+//          const-correctness issues resolved
+// Reason: I needed to fix the remaining compilation errors including const-correctness for
+//         utility methods, unused parameter warnings, and unhandled enumeration cases
 //
 // Changelog:
+// 2025-07-21 - Fixed const-correctness for utility methods called from const functions
+// 2025-07-21 - Resolved unused parameter warnings by properly handling port parameter
+// 2025-07-21 - Added missing AUTO_DETECT case to switch statement
 // 2025-07-21 - Completely corrected to use actual ICYMetadata fields from common_types.h
 // 2025-07-21 - Fixed const-correctness issues with mutable mutexes in header
 // 2025-07-21 - Fixed constructor initialization order to match header declaration order
-// 2025-07-21 - Removed all references to non-existent nested structures
 // 2025-07-18 - Added missing methods required by server.cpp compilation
 // 2025-07-16 - Initial implementation with ICY protocol support
 //
 // Next Dev Feature: I will add WebRTC integration for real-time browser streaming
-// Git Commit: fix: align implementation with actual ICYMetadata structure from common_types.h
+// Git Commit: fix: resolve all remaining compilation issues for successful Debian 12 build
 
 #include "icy_handler.h"
 #include <iostream>
@@ -160,10 +163,13 @@ bool ICYHandler::source_exists(const std::string& source_id) const {
     return sources_.find(source_id) != sources_.end();
 }
 
-// I implement handle_source_connection as required by server.cpp
+// I implement handle_source_connection as required by server.cpp - FIXED unused parameter warning
 bool ICYHandler::handle_source_connection(const std::string& uri,
                                         const std::map<std::string, std::string>& headers,
                                         const std::string& ip_address, uint16_t port) {
+    // I acknowledge the port parameter to avoid unused parameter warning
+    (void)port;
+
     // I extract mount path from URI
     std::string mount_path = extract_mount_path_from_uri(uri);
     if (mount_path.empty() || !mount_point_exists(mount_path)) {
@@ -200,10 +206,13 @@ bool ICYHandler::handle_source_connection(const std::string& uri,
     return success;
 }
 
-// I implement handle_listener_connection as required by server.cpp
+// I implement handle_listener_connection as required by server.cpp - FIXED unused parameter warning
 bool ICYHandler::handle_listener_connection(const std::string& uri,
                                           const std::map<std::string, std::string>& headers,
                                           const std::string& ip_address, uint16_t port) {
+    // I acknowledge the port parameter to avoid unused parameter warning
+    (void)port;
+
     // I extract mount path from URI
     std::string mount_path = extract_mount_path_from_uri(uri);
     if (mount_path.empty() || !mount_point_exists(mount_path)) {
@@ -310,7 +319,7 @@ bool ICYHandler::update_metadata(const std::string& mount_path, const ICYMetadat
     return true;
 }
 
-// I implement metadata retrieval with thread safety - FIXED const correctness
+// I implement metadata retrieval with thread safety
 ICYMetadata ICYHandler::get_metadata(const std::string& mount_path) const {
     std::lock_guard<std::mutex> lock(metadata_mutex_);
 
@@ -323,7 +332,7 @@ ICYMetadata ICYHandler::get_metadata(const std::string& mount_path) const {
     return ICYMetadata{};
 }
 
-// I implement metadata validation with comprehensive checks - FIXED to use actual fields
+// I implement metadata validation with comprehensive checks using actual fields
 bool ICYHandler::validate_metadata(const ICYMetadata& metadata) {
     // I validate basic metadata requirements
     if (metadata.station_name.empty()) {
@@ -335,7 +344,7 @@ bool ICYHandler::validate_metadata(const ICYMetadata& metadata) {
         return false;
     }
 
-    // I validate bitrate ranges - FIXED to use actual field
+    // I validate bitrate ranges using actual field
     if (metadata.bitrate < 8 || metadata.bitrate > 2000) {
         return false;
     }
@@ -360,14 +369,14 @@ bool ICYHandler::validate_metadata(const ICYMetadata& metadata) {
     return true;
 }
 
-// I implement metadata serialization for different ICY versions - FIXED field names
+// I implement metadata serialization for different ICY versions - FIXED missing AUTO_DETECT case
 std::string ICYHandler::serialize_metadata(const ICYMetadata& metadata, ICYVersion version) {
     std::stringstream ss;
 
     switch (version) {
         case ICYVersion::ICY_1_0:
         case ICYVersion::ICY_1_1:
-            // I format legacy ICY 1.x metadata - FIXED to use actual fields
+            // I format legacy ICY 1.x metadata using actual fields
             ss << "StreamTitle='" << metadata.station_name << "';";
             if (!metadata.url.empty()) {
                 ss << "StreamUrl='" << metadata.url << "';";
@@ -382,7 +391,7 @@ std::string ICYHandler::serialize_metadata(const ICYMetadata& metadata, ICYVersi
                 ss << "StreamUrl='" << metadata.url << "';";
             }
 
-            // I add ICY 2.0+ specific fields - FIXED to use actual fields
+            // I add ICY 2.0+ specific fields using actual fields
             if (!metadata.hashtags.empty()) {
                 ss << "icy-meta-hashtag-array='";
                 for (size_t i = 0; i < metadata.hashtags.size(); ++i) {
@@ -400,14 +409,18 @@ std::string ICYHandler::serialize_metadata(const ICYMetadata& metadata, ICYVersi
                 ss << "';";
             }
             break;
+
+        case ICYVersion::AUTO_DETECT:
+            // I handle AUTO_DETECT by defaulting to ICY 2.1 format
+            return serialize_metadata(metadata, ICYVersion::ICY_2_1);
     }
 
     return ss.str();
 }
 
-// I implement ICY header parsing for metadata extraction - FIXED to use actual fields
+// I implement ICY header parsing for metadata extraction using actual fields
 bool ICYHandler::parse_icy_headers(const std::map<std::string, std::string>& headers, ICYMetadata& metadata) {
-    // I parse standard ICY headers - FIXED field names
+    // I parse standard ICY headers using actual field names
     auto name_it = headers.find("icy-name");
     if (name_it != headers.end()) {
         metadata.station_name = name_it->second;
@@ -428,7 +441,7 @@ bool ICYHandler::parse_icy_headers(const std::map<std::string, std::string>& hea
         metadata.description = desc_it->second;
     }
 
-    // I parse bitrate - FIXED to use actual field
+    // I parse bitrate using actual field
     auto br_it = headers.find("icy-br");
     if (br_it != headers.end()) {
         try {
@@ -449,7 +462,7 @@ bool ICYHandler::parse_icy_headers(const std::map<std::string, std::string>& hea
         metadata.station_id = station_id_it->second;
     }
 
-    // I parse social media fields - FIXED to use actual field names
+    // I parse social media fields using actual field names
     auto twitter_it = headers.find("icy-meta-social-twitter");
     if (twitter_it != headers.end()) {
         metadata.social_twitter = twitter_it->second;
@@ -491,7 +504,7 @@ ICYVersion ICYHandler::detect_icy_version(const std::map<std::string, std::strin
     return ICYVersion::ICY_1_0;
 }
 
-// I implement ICY response generation for clients - FIXED to use actual fields
+// I implement ICY response generation for clients using actual fields
 std::string ICYHandler::generate_icy_response(const std::string& mount_path, ICYVersion version, int metaint) {
     std::stringstream response;
     ICYMetadata metadata = get_metadata(mount_path);
@@ -536,7 +549,7 @@ std::string ICYHandler::generate_source_response(bool success, const std::string
     }
 }
 
-// I implement statistics JSON generation - FIXED const correctness
+// I implement statistics JSON generation - FIXED const correctness by calling const methods
 std::string ICYHandler::get_statistics_json() const {
     std::stringstream json;
     json << "{\n";
@@ -673,7 +686,8 @@ void ICYHandler::log_connection_event(const std::string& event, const std::strin
               << event << ": " << details << std::endl;
 }
 
-std::string ICYHandler::escape_json_string(const std::string& input) {
+// I implement escape_json_string as const method - FIXED const correctness
+std::string ICYHandler::escape_json_string(const std::string& input) const {
     std::string output;
     output.reserve(input.length());
 
@@ -693,7 +707,8 @@ std::string ICYHandler::escape_json_string(const std::string& input) {
     return output;
 }
 
-std::string ICYHandler::format_timestamp(const std::chrono::system_clock::time_point& time) {
+// I implement format_timestamp as const method - FIXED const correctness
+std::string ICYHandler::format_timestamp(const std::chrono::system_clock::time_point& time) const {
     std::time_t time_t = std::chrono::system_clock::to_time_t(time);
     std::stringstream ss;
     ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
