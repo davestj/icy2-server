@@ -1,21 +1,21 @@
 // File: /var/www/mcaster1.com/DNAS/icy2-server/include/icy_handler.h
 // Author: davestj@gmail.com (David St. John)
 // Created: 2025-07-16
-// Title: ICY Protocol Handler - Corrected Type Organization
+// Title: ICY Protocol Handler - Complete Interface Implementation
 // Purpose: I created this header to handle both ICY 1.x legacy protocols and ICY 2.0+
-//          advanced features while properly utilizing existing common type definitions
-// Reason: I needed to resolve compilation conflicts by properly organizing type definitions
-//         and ensuring compatibility with the established project architecture
+//          advanced features with complete interface compatibility for server.cpp
+// Reason: I needed to provide all methods expected by server.cpp implementation
+//         while maintaining proper type organization through common_types.h
 //
 // Changelog:
-// 2025-07-18 - Fixed duplicate type definition conflicts by including common_types.h
-// 2025-07-18 - Removed duplicate ICYVersion, ICYMetadata, and MountPointConfig definitions
-// 2025-07-18 - Maintained all ICY 2.0+ protocol functionality while resolving build issues
+// 2025-07-18 - Added missing methods required by server.cpp implementation
+// 2025-07-18 - Fixed interface compatibility while using common_types.h properly
+// 2025-07-18 - Resolved compilation errors by providing complete method signatures
 // 2025-07-16 - Initial implementation with complete ICY protocol support
 // 2025-07-16 - Added mount point management and listener tracking capabilities
 //
 // Next Dev Feature: I will add WebRTC integration for real-time browser streaming
-// Git Commit: fix: resolve duplicate type definitions by using common_types.h properly
+// Git Commit: fix: add missing ICYHandler methods required by server implementation
 
 #ifndef ICY2_ICY_HANDLER_H
 #define ICY2_ICY_HANDLER_H
@@ -30,6 +30,7 @@
 #include <chrono>
 #include <regex>
 #include <map>
+#include <cstdint>
 
 // I'm including the common types to avoid duplicate definitions
 #include "common_types.h"
@@ -74,8 +75,13 @@ public:
     ICYHandler(ICYHandler&&) = delete;
     ICYHandler& operator=(ICYHandler&&) = delete;
 
+    // I provide configuration method required by server.cpp
+    bool configure(bool legacy_support, bool icy2_support,
+                  const std::string& server_name, int default_metaint);
+
     // I provide mount point management functionality using MountPointConfig from common_types.h
     bool create_mount_point(const std::string& mount_path, const MountPointConfig& config);
+    bool add_mount_point(const std::string& mount_path, const MountPointConfig& config); // I alias for server.cpp compatibility
     bool remove_mount_point(const std::string& mount_path);
     bool mount_point_exists(const std::string& mount_path) const;
     std::unordered_map<std::string, MountPointConfig> get_mount_points() const;
@@ -87,6 +93,14 @@ public:
                         const std::string& ip_address, const std::string& user_agent);
     void unregister_source(const std::string& source_id);
     bool source_exists(const std::string& source_id) const;
+
+    // I provide connection handling methods required by server.cpp
+    bool handle_source_connection(const std::string& uri,
+                                const std::map<std::string, std::string>& headers,
+                                const std::string& ip_address, uint16_t port);
+    bool handle_listener_connection(const std::string& uri,
+                                  const std::map<std::string, std::string>& headers,
+                                  const std::string& ip_address, uint16_t port);
 
     // I provide listener connection management for client tracking
     std::string register_listener(const std::string& mount_path, const std::string& ip_address,
@@ -121,6 +135,12 @@ public:
     void stop_maintenance_thread();
 
 private:
+    // I maintain configuration settings required by server.cpp
+    bool legacy_support_enabled_;                       // I track ICY 1.x support
+    bool icy2_support_enabled_;                         // I track ICY 2.0+ support
+    std::string server_name_;                           // I store server identification
+    int default_metaint_;                               // I store default metadata interval
+
     // I maintain mount point management with comprehensive thread safety
     // Using MountPointConfig from common_types.h
     std::unordered_map<std::string, MountPointConfig> mount_points_;
@@ -151,6 +171,8 @@ private:
     void log_connection_event(const std::string& event, const std::string& details);
     std::string escape_json_string(const std::string& input);
     std::string format_timestamp(const std::chrono::system_clock::time_point& time);
+    bool validate_connection_headers(const std::map<std::string, std::string>& headers);
+    std::string extract_mount_path_from_uri(const std::string& uri);
 };
 
 } // namespace icy2
