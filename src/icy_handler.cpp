@@ -1,21 +1,22 @@
-// File: /Users/dstjohn/dev/01_mcaster1.com/DNAS/icy2-server/src/icy_handler.cpp
+// File: /var/www/mcaster1.com/DNAS/icy2-server/src/icy_handler.cpp
 // Author: davestj@gmail.com (David St. John)
 // Created: 2025-07-16
-// Title: ICY Protocol Handler Implementation - Complete Functionality
+// Title: ICY Protocol Handler Implementation - Corrected for Debian 12 Linux
 // Purpose: I created this implementation to provide complete ICY 1.x and ICY 2.0+ protocol
-//          support with proper struct member access and thread-safe operations
-// Reason: I needed to align the implementation with the corrected header structure and
-//         resolve all compilation issues preventing successful build completion
+//          support using the actual ICYMetadata structure from common_types.h
+// Reason: I needed to align the implementation with the actual structure definitions
+//         instead of using imagined nested structures, and fix all const-correctness issues
 //
 // Changelog:
-// 2025-07-18 - Corrected all struct member access to align with definitive header
-// 2025-07-18 - Fixed method implementations to match header declarations exactly
-// 2025-07-18 - Resolved thread safety issues with proper mutex usage patterns
-// 2025-07-16 - Initial implementation of ICY protocol handler with metadata support
-// 2025-07-16 - Added comprehensive mount point and listener management functionality
+// 2025-07-21 - Completely corrected to use actual ICYMetadata fields from common_types.h
+// 2025-07-21 - Fixed const-correctness issues with mutable mutexes in header
+// 2025-07-21 - Fixed constructor initialization order to match header declaration order
+// 2025-07-21 - Removed all references to non-existent nested structures
+// 2025-07-18 - Added missing methods required by server.cpp compilation
+// 2025-07-16 - Initial implementation with ICY protocol support
 //
 // Next Dev Feature: I will add WebRTC integration for real-time browser streaming
-// Git Commit: fix: align ICY handler implementation with corrected header structure
+// Git Commit: fix: align implementation with actual ICYMetadata structure from common_types.h
 
 #include "icy_handler.h"
 #include <iostream>
@@ -28,11 +29,15 @@
 
 namespace icy2 {
 
-// I'm implementing the constructor with proper initialization
+// I'm implementing the constructor with proper initialization order matching header
 ICYHandler::ICYHandler()
-    : public_directory_enabled_(false),
+    : legacy_support_enabled_(true),
+      icy2_support_enabled_(true),
+      server_name_("ICY2-DNAS/1.0"),
+      default_metaint_(8192),
       metadata_sequence_(0),
       maintenance_running_(false),
+      public_directory_enabled_(false),
       cleanup_interval_(std::chrono::seconds(300)) {
     // I initialize the handler with default settings
 }
@@ -40,6 +45,25 @@ ICYHandler::ICYHandler()
 // I'm implementing the destructor with proper cleanup
 ICYHandler::~ICYHandler() {
     stop_maintenance_thread();
+}
+
+// I implement the configure method required by server.cpp
+bool ICYHandler::configure(bool legacy_support, bool icy2_support,
+                          const std::string& server_name, int default_metaint) {
+    if (server_name.empty() || default_metaint <= 0) {
+        return false;
+    }
+
+    legacy_support_enabled_ = legacy_support;
+    icy2_support_enabled_ = icy2_support;
+    server_name_ = server_name;
+    default_metaint_ = default_metaint;
+
+    log_connection_event("icy_configured",
+        "ICY handler configured - Legacy: " + std::string(legacy_support ? "enabled" : "disabled") +
+        ", ICY2+: " + std::string(icy2_support ? "enabled" : "disabled"));
+
+    return true;
 }
 
 // I implement mount point creation with comprehensive validation
@@ -53,6 +77,11 @@ bool ICYHandler::create_mount_point(const std::string& mount_path, const MountPo
 
     log_connection_event("mount_created", "Mount point " + mount_path + " created successfully");
     return true;
+}
+
+// I implement add_mount_point as required by server.cpp - delegates to create_mount_point
+bool ICYHandler::add_mount_point(const std::string& mount_path, const MountPointConfig& config) {
+    return create_mount_point(mount_path, config);
 }
 
 // I implement mount point removal with proper cleanup
@@ -131,6 +160,85 @@ bool ICYHandler::source_exists(const std::string& source_id) const {
     return sources_.find(source_id) != sources_.end();
 }
 
+// I implement handle_source_connection as required by server.cpp
+bool ICYHandler::handle_source_connection(const std::string& uri,
+                                        const std::map<std::string, std::string>& headers,
+                                        const std::string& ip_address, uint16_t port) {
+    // I extract mount path from URI
+    std::string mount_path = extract_mount_path_from_uri(uri);
+    if (mount_path.empty() || !mount_point_exists(mount_path)) {
+        log_connection_event("source_connection_failed",
+            "Invalid mount path: " + mount_path + " from " + ip_address);
+        return false;
+    }
+
+    // I validate connection headers
+    if (!validate_connection_headers(headers)) {
+        log_connection_event("source_connection_failed",
+            "Invalid headers from " + ip_address);
+        return false;
+    }
+
+    // I generate unique source ID
+    std::string source_id = generate_client_id();
+
+    // I extract user agent
+    std::string user_agent = "Unknown";
+    auto ua_it = headers.find("User-Agent");
+    if (ua_it != headers.end()) {
+        user_agent = ua_it->second;
+    }
+
+    // I register the source connection
+    bool success = register_source(source_id, mount_path, ip_address, user_agent);
+
+    if (success) {
+        log_connection_event("source_connection_accepted",
+            "Source connected to " + mount_path + " from " + ip_address + " (" + user_agent + ")");
+    }
+
+    return success;
+}
+
+// I implement handle_listener_connection as required by server.cpp
+bool ICYHandler::handle_listener_connection(const std::string& uri,
+                                          const std::map<std::string, std::string>& headers,
+                                          const std::string& ip_address, uint16_t port) {
+    // I extract mount path from URI
+    std::string mount_path = extract_mount_path_from_uri(uri);
+    if (mount_path.empty() || !mount_point_exists(mount_path)) {
+        log_connection_event("listener_connection_failed",
+            "Invalid mount path: " + mount_path + " from " + ip_address);
+        return false;
+    }
+
+    // I extract user agent
+    std::string user_agent = "Unknown";
+    auto ua_it = headers.find("User-Agent");
+    if (ua_it != headers.end()) {
+        user_agent = ua_it->second;
+    }
+
+    // I check for metadata preference
+    bool metadata_enabled = false;
+    auto icy_meta_it = headers.find("icy-metadata");
+    if (icy_meta_it != headers.end() && icy_meta_it->second == "1") {
+        metadata_enabled = true;
+    }
+
+    // I register the listener connection
+    std::string client_id = register_listener(mount_path, ip_address, user_agent, metadata_enabled);
+
+    if (!client_id.empty()) {
+        log_connection_event("listener_connection_accepted",
+            "Listener connected to " + mount_path + " from " + ip_address +
+            " (" + user_agent + ") - Client ID: " + client_id);
+        return true;
+    }
+
+    return false;
+}
+
 // I implement listener registration with unique ID generation
 std::string ICYHandler::register_listener(const std::string& mount_path, const std::string& ip_address,
                                          const std::string& user_agent, bool metadata_enabled) {
@@ -194,7 +302,6 @@ bool ICYHandler::update_metadata(const std::string& mount_path, const ICYMetadat
     std::lock_guard<std::mutex> lock(metadata_mutex_);
 
     ICYMetadata updated_metadata = metadata;
-    updated_metadata.last_updated = std::chrono::system_clock::now();
     updated_metadata.sequence_number = ++metadata_sequence_;
 
     metadata_cache_[mount_path] = updated_metadata;
@@ -203,7 +310,7 @@ bool ICYHandler::update_metadata(const std::string& mount_path, const ICYMetadat
     return true;
 }
 
-// I implement metadata retrieval with thread safety
+// I implement metadata retrieval with thread safety - FIXED const correctness
 ICYMetadata ICYHandler::get_metadata(const std::string& mount_path) const {
     std::lock_guard<std::mutex> lock(metadata_mutex_);
 
@@ -212,30 +319,40 @@ ICYMetadata ICYHandler::get_metadata(const std::string& mount_path) const {
         return it->second;
     }
 
-    // I return default metadata if none exists
-    ICYMetadata default_metadata;
-    default_metadata.legacy.current_song = "Unknown Track";
-    default_metadata.legacy.genre = "Various";
-    default_metadata.legacy.bitrate = 128;
-
-    return default_metadata;
+    // I return empty metadata if not found
+    return ICYMetadata{};
 }
 
-// I implement metadata validation with comprehensive checks
+// I implement metadata validation with comprehensive checks - FIXED to use actual fields
 bool ICYHandler::validate_metadata(const ICYMetadata& metadata) {
-    // I validate bitrate ranges
-    if (metadata.legacy.bitrate < 8 || metadata.legacy.bitrate > 2000) {
+    // I validate basic metadata requirements
+    if (metadata.station_name.empty()) {
         return false;
     }
 
-    // I validate emoji count limitations
+    // I validate metadata size limits (prevent abuse)
+    if (metadata.station_name.length() > 256 || metadata.description.length() > 512) {
+        return false;
+    }
+
+    // I validate bitrate ranges - FIXED to use actual field
+    if (metadata.bitrate < 8 || metadata.bitrate > 2000) {
+        return false;
+    }
+
+    // I validate emoji count (ICY 2.0+ spec allows max 5 emojis)
     if (metadata.emojis.size() > 5) {
         return false;
     }
 
-    // I validate hashtag format
+    // I validate hashtag count (reasonable limit)
+    if (metadata.hashtags.size() > 20) {
+        return false;
+    }
+
+    // I validate individual hashtag length
     for (const auto& hashtag : metadata.hashtags) {
-        if (hashtag.empty() || hashtag[0] != '#') {
+        if (hashtag.length() > 64) {
             return false;
         }
     }
@@ -243,69 +360,163 @@ bool ICYHandler::validate_metadata(const ICYMetadata& metadata) {
     return true;
 }
 
-// I implement ICY response generation for different protocol versions
+// I implement metadata serialization for different ICY versions - FIXED field names
+std::string ICYHandler::serialize_metadata(const ICYMetadata& metadata, ICYVersion version) {
+    std::stringstream ss;
+
+    switch (version) {
+        case ICYVersion::ICY_1_0:
+        case ICYVersion::ICY_1_1:
+            // I format legacy ICY 1.x metadata - FIXED to use actual fields
+            ss << "StreamTitle='" << metadata.station_name << "';";
+            if (!metadata.url.empty()) {
+                ss << "StreamUrl='" << metadata.url << "';";
+            }
+            break;
+
+        case ICYVersion::ICY_2_0:
+        case ICYVersion::ICY_2_1:
+            // I format modern ICY 2.0+ metadata with enhanced fields
+            ss << "StreamTitle='" << metadata.station_name << "';";
+            if (!metadata.url.empty()) {
+                ss << "StreamUrl='" << metadata.url << "';";
+            }
+
+            // I add ICY 2.0+ specific fields - FIXED to use actual fields
+            if (!metadata.hashtags.empty()) {
+                ss << "icy-meta-hashtag-array='";
+                for (size_t i = 0; i < metadata.hashtags.size(); ++i) {
+                    if (i > 0) ss << ",";
+                    ss << metadata.hashtags[i];
+                }
+                ss << "';";
+            }
+
+            if (!metadata.emojis.empty()) {
+                ss << "icy-meta-emoji='";
+                for (const auto& emoji : metadata.emojis) {
+                    ss << emoji;
+                }
+                ss << "';";
+            }
+            break;
+    }
+
+    return ss.str();
+}
+
+// I implement ICY header parsing for metadata extraction - FIXED to use actual fields
+bool ICYHandler::parse_icy_headers(const std::map<std::string, std::string>& headers, ICYMetadata& metadata) {
+    // I parse standard ICY headers - FIXED field names
+    auto name_it = headers.find("icy-name");
+    if (name_it != headers.end()) {
+        metadata.station_name = name_it->second;
+    }
+
+    auto genre_it = headers.find("icy-genre");
+    if (genre_it != headers.end()) {
+        metadata.genre = genre_it->second;
+    }
+
+    auto url_it = headers.find("icy-url");
+    if (url_it != headers.end()) {
+        metadata.url = url_it->second;
+    }
+
+    auto desc_it = headers.find("icy-description");
+    if (desc_it != headers.end()) {
+        metadata.description = desc_it->second;
+    }
+
+    // I parse bitrate - FIXED to use actual field
+    auto br_it = headers.find("icy-br");
+    if (br_it != headers.end()) {
+        try {
+            metadata.bitrate = static_cast<uint32_t>(std::stoul(br_it->second));
+        } catch (const std::exception&) {
+            metadata.bitrate = 128; // I default to 128 kbps
+        }
+    }
+
+    // I parse ICY 2.0+ enhanced headers
+    auto version_it = headers.find("icy-metadata-version");
+    if (version_it != headers.end()) {
+        metadata.version = version_it->second;
+    }
+
+    auto station_id_it = headers.find("icy-meta-station-id");
+    if (station_id_it != headers.end()) {
+        metadata.station_id = station_id_it->second;
+    }
+
+    // I parse social media fields - FIXED to use actual field names
+    auto twitter_it = headers.find("icy-meta-social-twitter");
+    if (twitter_it != headers.end()) {
+        metadata.social_twitter = twitter_it->second;
+    }
+
+    auto ig_it = headers.find("icy-meta-social-ig");
+    if (ig_it != headers.end()) {
+        metadata.social_instagram = ig_it->second;
+    }
+
+    auto tiktok_it = headers.find("icy-meta-social-tiktok");
+    if (tiktok_it != headers.end()) {
+        metadata.social_tiktok = tiktok_it->second;
+    }
+
+    return true;
+}
+
+// I implement ICY version detection from headers
+ICYVersion ICYHandler::detect_icy_version(const std::map<std::string, std::string>& headers) {
+    // I check for ICY 2.0+ specific headers
+    if (headers.find("icy-metadata-version") != headers.end()) {
+        auto version_it = headers.find("icy-metadata-version");
+        if (version_it->second == "2.1") {
+            return ICYVersion::ICY_2_1;
+        } else if (version_it->second == "2.0") {
+            return ICYVersion::ICY_2_0;
+        }
+    }
+
+    // I check for other ICY 2.0+ indicators
+    if (headers.find("icy-meta-hashtag-array") != headers.end() ||
+        headers.find("icy-meta-emoji") != headers.end() ||
+        headers.find("icy-auth-token-key") != headers.end()) {
+        return ICYVersion::ICY_2_0;
+    }
+
+    // I default to ICY 1.x
+    return ICYVersion::ICY_1_0;
+}
+
+// I implement ICY response generation for clients - FIXED to use actual fields
 std::string ICYHandler::generate_icy_response(const std::string& mount_path, ICYVersion version, int metaint) {
+    std::stringstream response;
     ICYMetadata metadata = get_metadata(mount_path);
 
-    std::ostringstream response;
     response << "ICY 200 OK\r\n";
-    response << "icy-name: " << metadata.legacy.current_song << "\r\n";
+    response << "icy-notice1:<BR>This stream is served by ICY2-DNAS<BR>\r\n";
+    response << "icy-notice2:ICY2-DNAS - Digital Network Audio Server<BR>\r\n";
+    response << "icy-name:" << (metadata.station_name.empty() ? server_name_ : metadata.station_name) << "\r\n";
+    response << "icy-genre:" << (metadata.genre.empty() ? "Various" : metadata.genre) << "\r\n";
+    response << "icy-url:" << (metadata.url.empty() ? "http://mcaster1.com" : metadata.url) << "\r\n";
+    response << "icy-pub:" << (metadata.public_listing ? "1" : "0") << "\r\n";
+    response << "icy-br:" << metadata.bitrate << "\r\n";
+    response << "icy-metaint:" << metaint << "\r\n";
 
-    // I generate version-specific headers
-    if (version >= ICYVersion::ICY_1_0) {
-        response << "icy-genre: " << metadata.legacy.genre << "\r\n";
-        response << "icy-url: " << metadata.legacy.url << "\r\n";
-        response << "icy-pub: " << (metadata.legacy.is_public ? "1" : "0") << "\r\n";
-        response << "icy-br: " << metadata.legacy.bitrate << "\r\n";
-        response << "icy-metaint: " << metaint << "\r\n";
-    }
-
-    // I add ICY 2.0+ specific headers
+    // I add ICY 2.0+ headers if supported
     if (version >= ICYVersion::ICY_2_0) {
-        response << "icy-meta-version: " << metadata.metadata_version << "\r\n";
-
-        if (metadata.auth.status != VerificationStatus::UNVERIFIED) {
-            response << "icy-meta-station-id: " << metadata.auth.station_id << "\r\n";
-
-            std::string status_str = "unverified";
-            switch (metadata.auth.status) {
-                case VerificationStatus::VERIFIED: status_str = "verified"; break;
-                case VerificationStatus::GOLD: status_str = "gold"; break;
-                default: break;
-            }
-            response << "icy-meta-verification-status: " << status_str << "\r\n";
+        response << "icy-metadata-version:" << metadata.version << "\r\n";
+        if (!metadata.station_id.empty()) {
+            response << "icy-meta-station-id:" << metadata.station_id << "\r\n";
         }
-
-        // I add social media integration
-        if (!metadata.social.twitter_handle.empty()) {
-            response << "icy-meta-social-twitter: " << metadata.social.twitter_handle << "\r\n";
-        }
-        if (!metadata.social.instagram_username.empty()) {
-            response << "icy-meta-social-ig: " << metadata.social.instagram_username << "\r\n";
-        }
-        if (!metadata.social.tiktok_profile.empty()) {
-            response << "icy-meta-social-tiktok: " << metadata.social.tiktok_profile << "\r\n";
-        }
-
-        // I add video metadata support
-        if (!metadata.video.link.empty()) {
-            std::string video_type_str = "live";
-            switch (metadata.video.type) {
-                case VideoType::SHORT: video_type_str = "short"; break;
-                case VideoType::CLIP: video_type_str = "clip"; break;
-                case VideoType::TRAILER: video_type_str = "trailer"; break;
-                case VideoType::AD: video_type_str = "ad"; break;
-                default: break;
-            }
-            response << "icy-meta-videotype: " << video_type_str << "\r\n";
-            response << "icy-meta-videolink: " << metadata.video.link << "\r\n";
-            response << "icy-meta-videotitle: " << metadata.video.title << "\r\n";
-            response << "icy-meta-videochannel: " << metadata.video.channel << "\r\n";
-            response << "icy-meta-videolive: " << (metadata.video.is_live ? "true" : "false") << "\r\n";
+        if (!metadata.verification_status.empty()) {
+            response << "icy-meta-verification-status:" << metadata.verification_status << "\r\n";
         }
     }
 
-    response << "Content-Type: " << (metadata.video.link.empty() ? "audio/mpeg" : "video/mp4") << "\r\n";
     response << "\r\n";
 
     return response.str();
@@ -313,133 +524,54 @@ std::string ICYHandler::generate_icy_response(const std::string& mount_path, ICY
 
 // I implement source response generation
 std::string ICYHandler::generate_source_response(bool success, const std::string& message) {
-    std::ostringstream response;
-
     if (success) {
-        response << "HTTP/1.0 200 OK\r\n";
-        response << "Content-Type: text/plain\r\n\r\n";
-        response << "OK" << (message.empty() ? "" : " " + message) << "\r\n";
+        return "ICY 200 OK\r\n\r\n";
     } else {
-        response << "HTTP/1.0 401 Unauthorized\r\n";
-        response << "Content-Type: text/plain\r\n\r\n";
-        response << "ERROR" << (message.empty() ? "" : " " + message) << "\r\n";
-    }
-
-    return response.str();
-}
-
-// I implement ICY header parsing with comprehensive metadata extraction
-bool ICYHandler::parse_icy_headers(const std::map<std::string, std::string>& headers, ICYMetadata& metadata) {
-    // I parse legacy ICY 1.x headers
-    auto genre_it = headers.find("icy-genre");
-    if (genre_it != headers.end()) {
-        metadata.legacy.genre = genre_it->second;
-    }
-
-    auto url_it = headers.find("icy-url");
-    if (url_it != headers.end()) {
-        metadata.legacy.url = url_it->second;
-    }
-
-    auto br_it = headers.find("icy-br");
-    if (br_it != headers.end()) {
-        try {
-            metadata.legacy.bitrate = std::stoi(br_it->second);
-        } catch (const std::exception&) {
-            metadata.legacy.bitrate = 128; // I default to 128 kbps
+        std::string response = "ICY 401 Unauthorized\r\n";
+        if (!message.empty()) {
+            response += "icy-notice1:" + message + "\r\n";
         }
+        response += "\r\n";
+        return response;
     }
-
-    // I parse ICY 2.0+ metadata version
-    auto version_it = headers.find("icy-meta-version");
-    if (version_it != headers.end()) {
-        metadata.metadata_version = version_it->second;
-    }
-
-    // I parse social media integration headers
-    auto twitter_it = headers.find("icy-meta-social-twitter");
-    if (twitter_it != headers.end()) {
-        metadata.social.twitter_handle = twitter_it->second;
-    }
-
-    auto ig_it = headers.find("icy-meta-social-ig");
-    if (ig_it != headers.end()) {
-        metadata.social.instagram_username = ig_it->second;
-    }
-
-    auto tiktok_it = headers.find("icy-meta-social-tiktok");
-    if (tiktok_it != headers.end()) {
-        metadata.social.tiktok_profile = tiktok_it->second;
-    }
-
-    return true;
 }
 
-// I implement ICY version detection based on headers
-ICYVersion ICYHandler::detect_icy_version(const std::map<std::string, std::string>& headers) {
-    auto version_it = headers.find("icy-meta-version");
-    if (version_it != headers.end()) {
-        if (version_it->second.find("2.1") != std::string::npos) {
-            return ICYVersion::ICY_2_1;
-        } else if (version_it->second.find("2.0") != std::string::npos) {
-            return ICYVersion::ICY_2_0;
-        }
-    }
-
-    // I check for ICY 2.0+ specific headers
-    if (headers.find("icy-meta-social-twitter") != headers.end() ||
-        headers.find("icy-meta-videotype") != headers.end()) {
-        return ICYVersion::ICY_2_0;
-    }
-
-    return ICYVersion::ICY_1_0;
-}
-
-// I implement statistics generation in JSON format
+// I implement statistics JSON generation - FIXED const correctness
 std::string ICYHandler::get_statistics_json() const {
-    std::lock_guard<std::mutex> mount_lock(mount_points_mutex_);
-    std::lock_guard<std::mutex> listeners_lock(listeners_mutex_);
-    std::lock_guard<std::mutex> sources_lock(sources_mutex_);
-
-    std::ostringstream json;
+    std::stringstream json;
     json << "{\n";
-    json << "  \"server\": {\n";
-    json << "    \"version\": \"1.1.2\",\n";
-    json << "    \"uptime\": " << std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count() << ",\n";
-    json << "    \"mount_points\": " << mount_points_.size() << ",\n";
-    json << "    \"active_listeners\": " << listeners_.size() << ",\n";
-    json << "    \"active_sources\": " << sources_.size() << "\n";
+    json << "  \"server_info\": {\n";
+    json << "    \"name\": \"" << escape_json_string(server_name_) << "\",\n";
+    json << "    \"version\": \"ICY2-DNAS/1.0\",\n";
+    json << "    \"legacy_support\": " << (legacy_support_enabled_ ? "true" : "false") << ",\n";
+    json << "    \"icy2_support\": " << (icy2_support_enabled_ ? "true" : "false") << "\n";
     json << "  },\n";
+
     json << "  \"mount_points\": [\n";
+    {
+        std::lock_guard<std::mutex> lock(mount_points_mutex_);
+        bool first = true;
+        for (const auto& [path, config] : mount_points_) {
+            if (!first) json << ",\n";
+            first = false;
 
-    bool first = true;
-    for (const auto& [mount_path, config] : mount_points_) {
-        if (!first) json << ",\n";
-        first = false;
-
-        size_t listener_count = 0;
-        for (const auto& [client_id, listener] : listeners_) {
-            if (listener.mount_point == mount_path) {
-                listener_count++;
-            }
+            json << "    {\n";
+            json << "      \"path\": \"" << escape_json_string(path) << "\",\n";
+            json << "      \"name\": \"" << escape_json_string(config.name) << "\",\n";
+            json << "      \"listeners\": " << get_listener_count(path) << "\n";
+            json << "    }";
         }
-
-        json << "    {\n";
-        json << "      \"path\": \"" << escape_json_string(mount_path) << "\",\n";
-        json << "      \"name\": \"" << escape_json_string(config.name) << "\",\n";
-        json << "      \"listeners\": " << listener_count << ",\n";
-        json << "      \"max_listeners\": " << config.max_listeners << "\n";
-        json << "    }";
     }
+    json << "\n  ],\n";
 
-    json << "\n  ]\n";
-    json << "}";
+    json << "  \"total_listeners\": " << listeners_.size() << ",\n";
+    json << "  \"total_sources\": " << sources_.size() << "\n";
+    json << "}\n";
 
     return json.str();
 }
 
-// I implement YP directory configuration
+// I implement YP directory control
 void ICYHandler::set_yp_directory_enabled(bool enabled) {
     public_directory_enabled_ = enabled;
 }
@@ -448,37 +580,20 @@ bool ICYHandler::is_yp_directory_enabled() const {
     return public_directory_enabled_;
 }
 
-// I implement metadata serialization for different versions
-std::string ICYHandler::serialize_metadata(const ICYMetadata& metadata, ICYVersion version) {
-    std::ostringstream serialized;
-
-    if (version >= ICYVersion::ICY_2_0) {
-        // I use JSON format for ICY 2.0+
-        serialized << "{\n";
-        serialized << "  \"title\": \"" << escape_json_string(metadata.legacy.current_song) << "\",\n";
-        serialized << "  \"genre\": \"" << escape_json_string(metadata.legacy.genre) << "\",\n";
-        serialized << "  \"bitrate\": " << metadata.legacy.bitrate << ",\n";
-        serialized << "  \"version\": \"" << escape_json_string(metadata.metadata_version) << "\"\n";
-        serialized << "}";
-    } else {
-        // I use simple format for ICY 1.x
-        serialized << metadata.legacy.current_song;
-    }
-
-    return serialized.str();
-}
-
-// I implement connection cleanup for stale connections
+// I implement cleanup operations
 void ICYHandler::cleanup_stale_connections() {
     auto now = std::chrono::system_clock::now();
-    auto timeout = std::chrono::minutes(30); // I set 30-minute timeout
 
+    // I clean up stale listeners (older than 1 hour without activity)
     {
         std::lock_guard<std::mutex> lock(listeners_mutex_);
         auto it = listeners_.begin();
         while (it != listeners_.end()) {
-            if (now - it->second.connect_time > timeout) {
-                log_connection_event("listener_timeout", "Listener " + it->first + " timed out");
+            auto duration = std::chrono::duration_cast<std::chrono::hours>(
+                now - it->second.connect_time);
+            if (duration.count() > 1) {
+                log_connection_event("listener_cleanup",
+                    "Cleaning up stale listener: " + it->first);
                 it = listeners_.erase(it);
             } else {
                 ++it;
@@ -486,12 +601,16 @@ void ICYHandler::cleanup_stale_connections() {
         }
     }
 
+    // I clean up stale sources
     {
         std::lock_guard<std::mutex> lock(sources_mutex_);
         auto it = sources_.begin();
         while (it != sources_.end()) {
-            if (now - it->second.connect_time > timeout) {
-                log_connection_event("source_timeout", "Source " + it->first + " timed out");
+            auto duration = std::chrono::duration_cast<std::chrono::hours>(
+                now - it->second.connect_time);
+            if (duration.count() > 2) {
+                log_connection_event("source_cleanup",
+                    "Cleaning up stale source: " + it->first);
                 it = sources_.erase(it);
             } else {
                 ++it;
@@ -502,39 +621,37 @@ void ICYHandler::cleanup_stale_connections() {
 
 // I implement maintenance thread management
 void ICYHandler::start_maintenance_thread() {
-    if (!maintenance_running_.load()) {
-        maintenance_running_.store(true);
-        maintenance_thread_ = std::thread([this]() {
-            while (maintenance_running_.load()) {
-                cleanup_stale_connections();
-                std::this_thread::sleep_for(cleanup_interval_);
-            }
-        });
+    if (maintenance_running_.load()) {
+        return;
     }
+
+    maintenance_running_.store(true);
+    maintenance_thread_ = std::thread([this]() {
+        while (maintenance_running_.load()) {
+            cleanup_stale_connections();
+            std::this_thread::sleep_for(cleanup_interval_);
+        }
+    });
 }
 
 void ICYHandler::stop_maintenance_thread() {
-    if (maintenance_running_.load()) {
-        maintenance_running_.store(false);
-        if (maintenance_thread_.joinable()) {
-            maintenance_thread_.join();
-        }
+    if (!maintenance_running_.load()) {
+        return;
+    }
+
+    maintenance_running_.store(false);
+    if (maintenance_thread_.joinable()) {
+        maintenance_thread_.join();
     }
 }
 
-// I implement helper methods for internal operations
+// I implement utility helper functions
 std::string ICYHandler::generate_client_id() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis(100000, 999999);
 
-    std::ostringstream id;
-    id << "client_";
-    for (int i = 0; i < 8; ++i) {
-        id << std::hex << dis(gen);
-    }
-
-    return id.str();
+    return "client_" + std::to_string(dis(gen));
 }
 
 bool ICYHandler::is_valid_mount_path(const std::string& path) {
@@ -542,143 +659,45 @@ bool ICYHandler::is_valid_mount_path(const std::string& path) {
         return false;
     }
 
-    // I validate mount path format
-    std::regex mount_regex("^/[a-zA-Z0-9_-]+$");
+    // I use regex to validate mount path format
+    std::regex mount_regex("^/[a-zA-Z0-9_\\-/]*$");
     return std::regex_match(path, mount_regex);
 }
 
 void ICYHandler::log_connection_event(const std::string& event, const std::string& details) {
-    // I implement basic logging here
-    // In production, this would integrate with the main logging system
-    std::cout << "[ICY] " << event << ": " << details << std::endl;
+    // I output log messages to stdout for now
+    // In production, this would use a proper logging system
+    auto now = std::chrono::system_clock::now();
+    std::time_t time_t = std::chrono::system_clock::to_time_t(now);
+    std::cout << "[" << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S") << "] "
+              << event << ": " << details << std::endl;
 }
 
 std::string ICYHandler::escape_json_string(const std::string& input) {
-    std::ostringstream escaped;
+    std::string output;
+    output.reserve(input.length());
+
     for (char c : input) {
         switch (c) {
-            case '"': escaped << "\\\""; break;
-            case '\\': escaped << "\\\\"; break;
-            case '\n': escaped << "\\n"; break;
-            case '\r': escaped << "\\r"; break;
-            case '\t': escaped << "\\t"; break;
-            default: escaped << c; break;
+            case '"': output += "\\\""; break;
+            case '\\': output += "\\\\"; break;
+            case '\b': output += "\\b"; break;
+            case '\f': output += "\\f"; break;
+            case '\n': output += "\\n"; break;
+            case '\r': output += "\\r"; break;
+            case '\t': output += "\\t"; break;
+            default: output += c; break;
         }
     }
-    return escaped.str();
+
+    return output;
 }
 
 std::string ICYHandler::format_timestamp(const std::chrono::system_clock::time_point& time) {
-    auto time_t = std::chrono::system_clock::to_time_t(time);
-    std::ostringstream formatted;
-    formatted << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
-    return formatted.str();
-}
-
-} // namespace icy2
-// I implement the configure method required by server.cpp
-bool ICYHandler::configure(bool legacy_support, bool icy2_support,
-                          const std::string& server_name, int default_metaint) {
-    if (server_name.empty() || default_metaint <= 0) {
-        return false;
-    }
-
-    legacy_support_enabled_ = legacy_support;
-    icy2_support_enabled_ = icy2_support;
-    server_name_ = server_name;
-    default_metaint_ = default_metaint;
-
-    log_connection_event("icy_configured", 
-        "ICY handler configured - Legacy: " + std::string(legacy_support ? "enabled" : "disabled") +
-        ", ICY2+: " + std::string(icy2_support ? "enabled" : "disabled"));
-    
-    return true;
-}
-
-// I implement add_mount_point as required by server.cpp - delegates to create_mount_point
-bool ICYHandler::add_mount_point(const std::string& mount_path, const MountPointConfig& config) {
-    return create_mount_point(mount_path, config);
-}
-
-// I implement handle_source_connection as required by server.cpp
-bool ICYHandler::handle_source_connection(const std::string& uri,
-                                        const std::map<std::string, std::string>& headers,
-                                        const std::string& ip_address, uint16_t port) {
-    // I extract mount path from URI
-    std::string mount_path = extract_mount_path_from_uri(uri);
-    if (mount_path.empty() || !mount_point_exists(mount_path)) {
-        log_connection_event("source_connection_failed", 
-            "Invalid mount path: " + mount_path + " from " + ip_address);
-        return false;
-    }
-
-    // I generate unique source ID and register the source connection
-    std::string source_id = generate_client_id();
-    std::string user_agent = "Unknown";
-    auto ua_it = headers.find("User-Agent");
-    if (ua_it != headers.end()) {
-        user_agent = ua_it->second;
-    }
-
-    bool success = register_source(source_id, mount_path, ip_address, user_agent);
-    if (success) {
-        log_connection_event("source_connection_accepted", 
-            "Source connected to " + mount_path + " from " + ip_address);
-    }
-    
-    return success;
-}
-
-// I implement handle_listener_connection as required by server.cpp
-bool ICYHandler::handle_listener_connection(const std::string& uri,
-                                          const std::map<std::string, std::string>& headers,
-                                          const std::string& ip_address, uint16_t port) {
-    // I extract mount path from URI
-    std::string mount_path = extract_mount_path_from_uri(uri);
-    if (mount_path.empty() || !mount_point_exists(mount_path)) {
-        log_connection_event("listener_connection_failed", 
-            "Invalid mount path: " + mount_path + " from " + ip_address);
-        return false;
-    }
-
-    // I extract user agent and check for metadata preference
-    std::string user_agent = "Unknown";
-    auto ua_it = headers.find("User-Agent");
-    if (ua_it != headers.end()) {
-        user_agent = ua_it->second;
-    }
-
-    bool metadata_enabled = false;
-    auto icy_meta_it = headers.find("icy-metadata");
-    if (icy_meta_it != headers.end() && icy_meta_it->second == "1") {
-        metadata_enabled = true;
-    }
-
-    // I register the listener connection
-    std::string client_id = register_listener(mount_path, ip_address, user_agent, metadata_enabled);
-    
-    if (!client_id.empty()) {
-        log_connection_event("listener_connection_accepted", 
-            "Listener connected to " + mount_path + " from " + ip_address);
-        return true;
-    }
-    
-    return false;
-}
-
-
-// I implement utility helper functions required by the added methods
-std::string ICYHandler::extract_mount_path_from_uri(const std::string& uri) {
-    // I extract mount path from URI (everything before query parameters)
-    size_t query_pos = uri.find('?');
-    std::string path = (query_pos != std::string::npos) ? uri.substr(0, query_pos) : uri;
-    
-    // I ensure path starts with /
-    if (path.empty() || path[0] != '/') {
-        return "/stream"; // I default to /stream
-    }
-    
-    return path;
+    std::time_t time_t = std::chrono::system_clock::to_time_t(time);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+    return ss.str();
 }
 
 bool ICYHandler::validate_connection_headers(const std::map<std::string, std::string>& headers) {
@@ -686,8 +705,22 @@ bool ICYHandler::validate_connection_headers(const std::map<std::string, std::st
     if (headers.empty()) {
         return false;
     }
-    
+
     // I could add more sophisticated validation here
     return true;
 }
 
+std::string ICYHandler::extract_mount_path_from_uri(const std::string& uri) {
+    // I extract mount path from URI (everything before query parameters)
+    size_t query_pos = uri.find('?');
+    std::string path = (query_pos != std::string::npos) ? uri.substr(0, query_pos) : uri;
+
+    // I ensure path starts with /
+    if (path.empty() || path[0] != '/') {
+        return "/stream"; // I default to /stream
+    }
+
+    return path;
+}
+
+} // namespace icy2

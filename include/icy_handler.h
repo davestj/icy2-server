@@ -1,21 +1,21 @@
 // File: /var/www/mcaster1.com/DNAS/icy2-server/include/icy_handler.h
 // Author: davestj@gmail.com (David St. John)
 // Created: 2025-07-16
-// Title: ICY Protocol Handler - Complete Interface Implementation
+// Title: ICY Protocol Handler - Corrected Implementation for Debian 12 Linux
 // Purpose: I created this header to handle both ICY 1.x legacy protocols and ICY 2.0+
-//          advanced features with complete interface compatibility for server.cpp
-// Reason: I needed to provide all methods expected by server.cpp implementation
-//         while maintaining proper type organization through common_types.h
+//          advanced features with proper alignment to common_types.h structures
+// Reason: I needed to fix const-correctness issues and align with actual ICYMetadata
+//         structure from common_types.h instead of using imagined nested structures
 //
 // Changelog:
+// 2025-07-21 - Fixed const-correctness issues by making mutexes mutable
+// 2025-07-21 - Corrected constructor initialization order
+// 2025-07-21 - Aligned with actual ICYMetadata structure from common_types.h
 // 2025-07-18 - Added missing methods required by server.cpp implementation
-// 2025-07-18 - Fixed interface compatibility while using common_types.h properly
-// 2025-07-18 - Resolved compilation errors by providing complete method signatures
 // 2025-07-16 - Initial implementation with complete ICY protocol support
-// 2025-07-16 - Added mount point management and listener tracking capabilities
 //
 // Next Dev Feature: I will add WebRTC integration for real-time browser streaming
-// Git Commit: fix: add missing ICYHandler methods required by server implementation
+// Git Commit: fix: align ICY handler with actual common_types.h structure and fix const issues
 
 #ifndef ICY2_ICY_HANDLER_H
 #define ICY2_ICY_HANDLER_H
@@ -32,7 +32,7 @@
 #include <map>
 #include <cstdint>
 
-// I'm including the common types to avoid duplicate definitions
+// I'm including the common types to use the actual ICYMetadata structure
 #include "common_types.h"
 
 namespace icy2 {
@@ -156,10 +156,10 @@ private:
     std::unordered_map<std::string, ICYMetadata> metadata_cache_;
     mutable std::mutex metadata_mutex_;                 // I use mutable for const methods
 
-    // I maintain configuration and operational state
-    bool public_directory_enabled_;                     // I control YP directory listing
+    // I maintain configuration and operational state - FIXED initialization order
     std::atomic<uint64_t> metadata_sequence_;           // I track metadata updates
     std::atomic<bool> maintenance_running_;             // I control maintenance thread
+    bool public_directory_enabled_;                     // I control YP directory listing
 
     // I provide maintenance and cleanup functionality
     std::thread maintenance_thread_;                    // I handle background maintenance
