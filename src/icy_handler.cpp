@@ -576,3 +576,118 @@ std::string ICYHandler::format_timestamp(const std::chrono::system_clock::time_p
 }
 
 } // namespace icy2
+// I implement the configure method required by server.cpp
+bool ICYHandler::configure(bool legacy_support, bool icy2_support,
+                          const std::string& server_name, int default_metaint) {
+    if (server_name.empty() || default_metaint <= 0) {
+        return false;
+    }
+
+    legacy_support_enabled_ = legacy_support;
+    icy2_support_enabled_ = icy2_support;
+    server_name_ = server_name;
+    default_metaint_ = default_metaint;
+
+    log_connection_event("icy_configured", 
+        "ICY handler configured - Legacy: " + std::string(legacy_support ? "enabled" : "disabled") +
+        ", ICY2+: " + std::string(icy2_support ? "enabled" : "disabled"));
+    
+    return true;
+}
+
+// I implement add_mount_point as required by server.cpp - delegates to create_mount_point
+bool ICYHandler::add_mount_point(const std::string& mount_path, const MountPointConfig& config) {
+    return create_mount_point(mount_path, config);
+}
+
+// I implement handle_source_connection as required by server.cpp
+bool ICYHandler::handle_source_connection(const std::string& uri,
+                                        const std::map<std::string, std::string>& headers,
+                                        const std::string& ip_address, uint16_t port) {
+    // I extract mount path from URI
+    std::string mount_path = extract_mount_path_from_uri(uri);
+    if (mount_path.empty() || !mount_point_exists(mount_path)) {
+        log_connection_event("source_connection_failed", 
+            "Invalid mount path: " + mount_path + " from " + ip_address);
+        return false;
+    }
+
+    // I generate unique source ID and register the source connection
+    std::string source_id = generate_client_id();
+    std::string user_agent = "Unknown";
+    auto ua_it = headers.find("User-Agent");
+    if (ua_it != headers.end()) {
+        user_agent = ua_it->second;
+    }
+
+    bool success = register_source(source_id, mount_path, ip_address, user_agent);
+    if (success) {
+        log_connection_event("source_connection_accepted", 
+            "Source connected to " + mount_path + " from " + ip_address);
+    }
+    
+    return success;
+}
+
+// I implement handle_listener_connection as required by server.cpp
+bool ICYHandler::handle_listener_connection(const std::string& uri,
+                                          const std::map<std::string, std::string>& headers,
+                                          const std::string& ip_address, uint16_t port) {
+    // I extract mount path from URI
+    std::string mount_path = extract_mount_path_from_uri(uri);
+    if (mount_path.empty() || !mount_point_exists(mount_path)) {
+        log_connection_event("listener_connection_failed", 
+            "Invalid mount path: " + mount_path + " from " + ip_address);
+        return false;
+    }
+
+    // I extract user agent and check for metadata preference
+    std::string user_agent = "Unknown";
+    auto ua_it = headers.find("User-Agent");
+    if (ua_it != headers.end()) {
+        user_agent = ua_it->second;
+    }
+
+    bool metadata_enabled = false;
+    auto icy_meta_it = headers.find("icy-metadata");
+    if (icy_meta_it != headers.end() && icy_meta_it->second == "1") {
+        metadata_enabled = true;
+    }
+
+    // I register the listener connection
+    std::string client_id = register_listener(mount_path, ip_address, user_agent, metadata_enabled);
+    
+    if (!client_id.empty()) {
+        log_connection_event("listener_connection_accepted", 
+            "Listener connected to " + mount_path + " from " + ip_address);
+        return true;
+    }
+    
+    return false;
+}
+
+
+// I implement utility helper functions required by the added methods
+std::string ICYHandler::extract_mount_path_from_uri(const std::string& uri) {
+    // I extract mount path from URI (everything before query parameters)
+    size_t query_pos = uri.find('?');
+    std::string path = (query_pos != std::string::npos) ? uri.substr(0, query_pos) : uri;
+    
+    // I ensure path starts with /
+    if (path.empty() || path[0] != '/') {
+        return "/stream"; // I default to /stream
+    }
+    
+    return path;
+}
+
+bool ICYHandler::validate_connection_headers(const std::map<std::string, std::string>& headers) {
+    // I perform basic header validation
+    if (headers.empty()) {
+        return false;
+    }
+    
+    // I could add more sophisticated validation here
+    return true;
+}
+
