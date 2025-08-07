@@ -835,8 +835,74 @@ bool ICY2Server::parse_http_headers(ClientConnection* conn) {
  * This validates incoming requests for security
  */
 bool ICY2Server::validate_request(ClientConnection* conn) {
-    // I would implement security validation here
-    return true;
+    if (!auth_manager_) {
+        return false;
+    }
+
+    // I first look for an Authorization header
+    auto auth_header = conn->headers.find("Authorization");
+    if (auth_header == conn->headers.end()) {
+        auth_header = conn->headers.find("authorization");
+    }
+
+    if (auth_header != conn->headers.end()) {
+        const std::string& header_value = auth_header->second;
+
+        // I handle bearer token authentication
+        const std::string bearer_prefix = "Bearer ";
+        if (header_value.rfind(bearer_prefix, 0) == 0) {
+            std::string token = header_value.substr(bearer_prefix.length());
+            auto session = auth_manager_->authenticate_token(token, conn->remote_ip);
+            if (session) {
+                conn->authenticated = true;
+                conn->session_id = session->session_id;
+                return true;
+            }
+            return false;
+        }
+
+        // I handle basic authentication with username and password
+        const std::string basic_prefix = "Basic ";
+        if (header_value.rfind(basic_prefix, 0) == 0 && api_helper_) {
+            std::string encoded = header_value.substr(basic_prefix.length());
+            std::vector<uint8_t> decoded_bytes = api_helper_->base64_decode(encoded);
+            std::string decoded(decoded_bytes.begin(), decoded_bytes.end());
+            auto sep = decoded.find(':');
+            if (sep != std::string::npos) {
+                std::string username = decoded.substr(0, sep);
+                std::string password = decoded.substr(sep + 1);
+                auto session = auth_manager_->authenticate_user(username, password,
+                                                               conn->remote_ip,
+                                                               conn->user_agent);
+                if (session) {
+                    conn->authenticated = true;
+                    conn->session_id = session->session_id;
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    // I also check for API key authentication header
+    auto api_key_header = conn->headers.find("X-API-Key");
+    if (api_key_header == conn->headers.end()) {
+        api_key_header = conn->headers.find("x-api-key");
+    }
+
+    if (api_key_header != conn->headers.end()) {
+        auto session = auth_manager_->authenticate_api_key(api_key_header->second,
+                                                           conn->remote_ip);
+        if (session) {
+            conn->authenticated = true;
+            conn->session_id = session->session_id;
+            return true;
+        }
+        return false;
+    }
+
+    // I deny requests with missing or invalid authentication
+    return false;
 }
 
 /**
