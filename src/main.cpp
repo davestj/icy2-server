@@ -29,6 +29,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <atomic>
 #include <chrono>
 #include <thread>
 #include <csignal>
@@ -36,6 +37,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "server.h"
 #include "config_parser.h"
@@ -280,10 +282,20 @@ bool parse_command_line(int argc, char* argv[], CommandLineOptions& options) {
                 options.bind_ip = optarg;
                 break;
             case 'p':
-                options.port = static_cast<uint16_t>(std::stoi(optarg));
+                try {
+                    options.port = static_cast<uint16_t>(std::stoi(optarg));
+                } catch (const std::exception&) {
+                    std::cerr << "Error: Invalid port number: " << optarg << std::endl;
+                    return false;
+                }
                 break;
             case 'd':
-                options.debug_level = std::stoi(optarg);
+                try {
+                    options.debug_level = std::stoi(optarg);
+                } catch (const std::exception&) {
+                    std::cerr << "Error: Invalid debug level: " << optarg << std::endl;
+                    return false;
+                }
                 if (options.debug_level < 1 || options.debug_level > 4) {
                     std::cerr << "Error: Debug level must be between 1 and 4" << std::endl;
                     return false;
@@ -422,12 +434,32 @@ bool daemonize() {
     
     // I set file creation mask
     umask(0);
-    
+
     // I close standard file descriptors
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-    
+
+    int fd = open("/dev/null", O_RDWR);
+    if (fd < 0) {
+        std::cerr << "Error: Failed to open /dev/null" << std::endl;
+        return false;
+    }
+
+    if (dup2(fd, STDIN_FILENO) < 0 ||
+        dup2(fd, STDOUT_FILENO) < 0 ||
+        dup2(fd, STDERR_FILENO) < 0) {
+        std::cerr << "Error: Failed to duplicate file descriptors" << std::endl;
+        if (fd > STDERR_FILENO) {
+            close(fd);
+        }
+        return false;
+    }
+
+    if (fd > STDERR_FILENO) {
+        close(fd);
+    }
+
     return true;
 }
 

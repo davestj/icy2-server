@@ -88,7 +88,7 @@ struct ClientConnection {
     std::chrono::steady_clock::time_point last_activity; // I track last activity
     bool is_ssl;                               // I flag SSL/TLS connections
     SSL* ssl_handle;                           // I store SSL connection handle
-    std::vector<char> buffer;                  // I maintain the connection buffer
+    std::vector<char> read_buffer;             // I maintain the connection read buffer
     size_t buffer_pos;                         // I track buffer position
     bool authenticated;                        // I track authentication status
     std::string user_agent;                    // I store the client user agent
@@ -244,10 +244,13 @@ private:
     bool initialize_sockets();
     bool bind_and_listen(int& socket_fd, uint16_t port, bool ssl);
     void accept_connections();
+    void accept_new_connection(int listening_socket, bool is_ssl, bool is_admin);
     void worker_thread_main();
     void handle_connection(std::unique_ptr<ClientConnection> conn);
     void process_http_request(ClientConnection* conn);
+    void handle_status_request(ClientConnection* conn);
     void process_api_request(ClientConnection* conn);
+    void handle_api_status_request(ClientConnection* conn);
     void process_icy_request(ClientConnection* conn);
     void process_php_request(ClientConnection* conn);
     void send_http_response(ClientConnection* conn, int status_code,
@@ -261,5 +264,4 @@ private:
 };
 
 } // namespace icy2
-
 #endif // ICY2_SERVER_H

@@ -89,6 +89,7 @@ enum class ConnectionType {
     HTTPS,          // I identify HTTPS connections
     ICY_SOURCE,     // I identify ICY source broadcasting connections
     ICY_LISTENER,   // I identify ICY listener connections
+    HTTP_LISTENER,  // I identify standard HTTP listener connections
     PHP_FPM,        // I identify PHP-FPM FastCGI connections
     API,            // I identify REST API connections
     WEBSOCKET,      // I identify WebSocket connections

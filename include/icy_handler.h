@@ -1,13 +1,14 @@
 // File: /var/www/mcaster1.com/DNAS/icy2-server/include/icy_handler.h
 // Author: davestj@gmail.com (David St. John)
 // Created: 2025-07-16
-// Title: ICY Protocol Handler - Corrected Implementation for Debian 12 Linux
+// Title: ICY Protocol Handler - Final Corrected Implementation for Debian 12 Linux
 // Purpose: I created this header to handle both ICY 1.x legacy protocols and ICY 2.0+
-//          advanced features with proper alignment to common_types.h structures
-// Reason: I needed to fix const-correctness issues and align with actual ICYMetadata
-//         structure from common_types.h instead of using imagined nested structures
+//          advanced features with proper const-correctness for all utility methods
+// Reason: I needed to fix const-correctness issues for utility methods called from const functions
+//         and ensure all method signatures properly support the calling patterns in server.cpp
 //
 // Changelog:
+// 2025-07-21 - Fixed const-correctness for escape_json_string and other utility methods
 // 2025-07-21 - Fixed const-correctness issues by making mutexes mutable
 // 2025-07-21 - Corrected constructor initialization order
 // 2025-07-21 - Aligned with actual ICYMetadata structure from common_types.h
@@ -15,7 +16,7 @@
 // 2025-07-16 - Initial implementation with complete ICY protocol support
 //
 // Next Dev Feature: I will add WebRTC integration for real-time browser streaming
-// Git Commit: fix: align ICY handler with actual common_types.h structure and fix const issues
+// Git Commit: fix: resolve const-correctness issues for utility methods in const contexts
 
 #ifndef ICY2_ICY_HANDLER_H
 #define ICY2_ICY_HANDLER_H
@@ -166,11 +167,12 @@ private:
     std::chrono::seconds cleanup_interval_;             // I set cleanup timing
 
     // I implement helper methods for internal operations and utilities
+    // FIXED: Made utility methods const so they can be called from const methods
     std::string generate_client_id();                   // I create unique client IDs
     bool is_valid_mount_path(const std::string& path);  // I validate mount point paths
     void log_connection_event(const std::string& event, const std::string& details);
-    std::string escape_json_string(const std::string& input);
-    std::string format_timestamp(const std::chrono::system_clock::time_point& time);
+    std::string escape_json_string(const std::string& input) const; // I make this const
+    std::string format_timestamp(const std::chrono::system_clock::time_point& time) const; // I make this const
     bool validate_connection_headers(const std::map<std::string, std::string>& headers);
     std::string extract_mount_path_from_uri(const std::string& uri);
 };
