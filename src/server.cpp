@@ -30,6 +30,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <thread>
 #include <sys/socket.h>
@@ -765,11 +766,67 @@ void ICY2Server::send_icy_response(ClientConnection* conn, const std::string& re
  * This parses HTTP request headers
  */
 bool ICY2Server::parse_http_headers(ClientConnection* conn) {
-    // I would implement complete HTTP header parsing here
-    // For now, I provide a basic placeholder
-    conn->http_method = "GET";
-    conn->request_uri = "/";
-    conn->http_version = "HTTP/1.1";
+    // I convert the raw buffer into a string for easy parsing
+    std::string raw_request(conn->read_buffer.begin(), conn->read_buffer.end());
+
+    // I locate the end of the header section
+    size_t header_end = raw_request.find("\r\n\r\n");
+    if (header_end == std::string::npos) {
+        return false; // I fail if headers are incomplete
+    }
+
+    std::istringstream stream(raw_request.substr(0, header_end));
+    std::string line;
+
+    // I parse the request line
+    if (!std::getline(stream, line)) {
+        return false;
+    }
+    if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+    }
+
+    std::istringstream request_line(line);
+    if (!(request_line >> conn->http_method >> conn->request_uri >> conn->http_version)) {
+        return false; // I require method, URI and version
+    }
+
+    // I parse each header line
+    while (std::getline(stream, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (line.empty()) {
+            continue;
+        }
+
+        auto colon_pos = line.find(':');
+        if (colon_pos == std::string::npos) {
+            return false; // I require valid header lines
+        }
+
+        std::string name = line.substr(0, colon_pos);
+        std::string value = line.substr(colon_pos + 1);
+
+        auto trim = [](std::string& s) {
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }));
+            s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }).base(), s.end());
+        };
+
+        trim(name);
+        trim(value);
+
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        conn->headers[name] = value;
+    }
+
     return true;
 }
 

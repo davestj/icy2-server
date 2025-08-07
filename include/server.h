@@ -88,7 +88,7 @@ struct ClientConnection {
     std::chrono::steady_clock::time_point last_activity; // I track last activity
     bool is_ssl;                               // I flag SSL/TLS connections
     SSL* ssl_handle;                           // I store SSL connection handle
-    std::vector<char> buffer;                  // I maintain the connection buffer
+    std::vector<char> read_buffer;             // I maintain the connection read buffer
     size_t buffer_pos;                         // I track buffer position
     bool authenticated;                        // I track authentication status
     std::string user_agent;                    // I store the client user agent
