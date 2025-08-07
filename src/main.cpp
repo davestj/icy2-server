@@ -29,6 +29,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <atomic>
 #include <chrono>
 #include <thread>
 #include <csignal>
