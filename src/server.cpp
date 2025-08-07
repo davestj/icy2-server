@@ -737,14 +737,22 @@ void ICY2Server::send_http_response(ClientConnection* conn, int status_code,
     response << "Connection: close\r\n";
     response << "\r\n" << body;
 
-    // I send the response
+    // I send the response ensuring all bytes are transmitted
     std::string response_str = response.str();
-    ssize_t sent = send(conn->socket_fd, response_str.c_str(), response_str.length(), 0);
+    const char* data = response_str.c_str();
+    size_t total = response_str.length();
+    size_t offset = 0;
 
-    // I update statistics
-    if (sent > 0) {
+    while (offset < total) {
+        ssize_t sent = send(conn->socket_fd, data + offset, total - offset, 0);
+        if (sent <= 0) {
+            break;  // I stop if an error occurs or connection is closed
+        }
+
+        // I update statistics for each successful send
         stats_.total_bytes_sent.fetch_add(sent);
         conn->bytes_sent += sent;
+        offset += sent;
     }
 }
 
@@ -753,11 +761,20 @@ void ICY2Server::send_http_response(ClientConnection* conn, int status_code,
  * This sends ICY protocol responses
  */
 void ICY2Server::send_icy_response(ClientConnection* conn, const std::string& response) {
-    ssize_t sent = send(conn->socket_fd, response.c_str(), response.length(), 0);
+    // I ensure the entire ICY response is sent
+    const char* data = response.c_str();
+    size_t total = response.length();
+    size_t offset = 0;
 
-    if (sent > 0) {
+    while (offset < total) {
+        ssize_t sent = send(conn->socket_fd, data + offset, total - offset, 0);
+        if (sent <= 0) {
+            break;  // I stop on error or closed connection
+        }
+
         stats_.total_bytes_sent.fetch_add(sent);
         conn->bytes_sent += sent;
+        offset += sent;
     }
 }
 
