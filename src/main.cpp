@@ -36,6 +36,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "server.h"
 #include "config_parser.h"
@@ -422,12 +423,32 @@ bool daemonize() {
     
     // I set file creation mask
     umask(0);
-    
+
     // I close standard file descriptors
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-    
+
+    int fd = open("/dev/null", O_RDWR);
+    if (fd < 0) {
+        std::cerr << "Error: Failed to open /dev/null" << std::endl;
+        return false;
+    }
+
+    if (dup2(fd, STDIN_FILENO) < 0 ||
+        dup2(fd, STDOUT_FILENO) < 0 ||
+        dup2(fd, STDERR_FILENO) < 0) {
+        std::cerr << "Error: Failed to duplicate file descriptors" << std::endl;
+        if (fd > STDERR_FILENO) {
+            close(fd);
+        }
+        return false;
+    }
+
+    if (fd > STDERR_FILENO) {
+        close(fd);
+    }
+
     return true;
 }
 
