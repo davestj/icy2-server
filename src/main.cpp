@@ -280,10 +280,20 @@ bool parse_command_line(int argc, char* argv[], CommandLineOptions& options) {
                 options.bind_ip = optarg;
                 break;
             case 'p':
-                options.port = static_cast<uint16_t>(std::stoi(optarg));
+                try {
+                    options.port = static_cast<uint16_t>(std::stoi(optarg));
+                } catch (const std::exception&) {
+                    std::cerr << "Error: Invalid port number: " << optarg << std::endl;
+                    return false;
+                }
                 break;
             case 'd':
-                options.debug_level = std::stoi(optarg);
+                try {
+                    options.debug_level = std::stoi(optarg);
+                } catch (const std::exception&) {
+                    std::cerr << "Error: Invalid debug level: " << optarg << std::endl;
+                    return false;
+                }
                 if (options.debug_level < 1 || options.debug_level > 4) {
                     std::cerr << "Error: Debug level must be between 1 and 4" << std::endl;
                     return false;
