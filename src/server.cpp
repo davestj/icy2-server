@@ -41,6 +41,7 @@
 #include <signal.h>
 #include <sys/epoll.h>
 #include <cstring>
+#include <cerrno>
 
 namespace icy2 {
 
@@ -744,15 +745,25 @@ void ICY2Server::send_http_response(ClientConnection* conn, int status_code,
     size_t offset = 0;
 
     while (offset < total) {
-        ssize_t sent = send(conn->socket_fd, data + offset, total - offset, 0);
-        if (sent <= 0) {
-            break;  // I stop if an error occurs or connection is closed
+        ssize_t sent = ::send(conn->socket_fd, data + offset, total - offset, 0);
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;  // I retry on interrupt
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;  // I retry on temporary unavailability
+            }
+            break;  // I stop on other errors
+        }
+        if (sent == 0) {
+            break;  // I stop if connection is closed
         }
 
         // I update statistics for each successful send
-        stats_.total_bytes_sent.fetch_add(sent);
-        conn->bytes_sent += sent;
-        offset += sent;
+        stats_.total_bytes_sent.fetch_add(static_cast<size_t>(sent));
+        conn->bytes_sent += static_cast<size_t>(sent);
+        offset += static_cast<size_t>(sent);
     }
 }
 
@@ -767,14 +778,24 @@ void ICY2Server::send_icy_response(ClientConnection* conn, const std::string& re
     size_t offset = 0;
 
     while (offset < total) {
-        ssize_t sent = send(conn->socket_fd, data + offset, total - offset, 0);
-        if (sent <= 0) {
-            break;  // I stop on error or closed connection
+        ssize_t sent = ::send(conn->socket_fd, data + offset, total - offset, 0);
+        if (sent < 0) {
+            if (errno == EINTR) {
+                continue;  // I retry on interrupt
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;  // I retry on temporary unavailability
+            }
+            break;  // I stop on other errors
+        }
+        if (sent == 0) {
+            break;  // I stop if connection is closed
         }
 
-        stats_.total_bytes_sent.fetch_add(sent);
-        conn->bytes_sent += sent;
-        offset += sent;
+        stats_.total_bytes_sent.fetch_add(static_cast<size_t>(sent));
+        conn->bytes_sent += static_cast<size_t>(sent);
+        offset += static_cast<size_t>(sent);
     }
 }
 
