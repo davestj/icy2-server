@@ -4,7 +4,7 @@
  * Author: davestj@gmail.com (David St. John)
  * Created: 2025-07-16
  * Purpose: I created this PHP-FPM FastCGI handler implementation to provide seamless
- *          PHP integration that mimics nginx's php-fpm functionality for web admin
+ *          PHP integration that mimics nginx's PHP-FPM functionality for web admin
  *          interfaces and dynamic content generation in ICY2-SERVER.
  * 
  * Reason: I need robust PHP-FPM integration to support modern web-based administration,
@@ -246,7 +246,7 @@ bool PHPHandler::process_fastcgi_request(FastCGIConnection* connection,
     // I ensure the connection is active
     if (!ensure_connection_active(connection)) {
         response.status = PHPResponseStatus::CONNECTION_FAILED;
-        response.error_message = "Failed to establish PHP-FPM connection";
+            response.error_message = "Failed to establish PHP-FPM connection";
         return false;
     }
     
