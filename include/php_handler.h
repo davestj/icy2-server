@@ -6,12 +6,17 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+
 #include <queue>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <thread>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <fcgiapp.h>
 
 namespace icy2 {
 
