@@ -33,6 +33,7 @@
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <fcgiapp.h>
