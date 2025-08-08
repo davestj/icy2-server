@@ -91,7 +91,7 @@ bool APIHelper::initialize(const std::string& server_id, const std::string& api_
 SystemInfo APIHelper::gather_system_info() {
     SystemInfo info;
     
-    // I get system name information
+    // I get system and OS information
     struct utsname uname_data;
     if (uname(&uname_data) == 0) {
         info.hostname = uname_data.nodename;
@@ -100,11 +100,11 @@ SystemInfo APIHelper::gather_system_info() {
         info.architecture = uname_data.machine;
     }
     
-    // I get CPU information
+    // I get CPU information including cores and threads
     info.cpu_cores = std::thread::hardware_concurrency();
     info.cpu_threads = info.cpu_cores; // I assume 1:1 for now
-    
-    // I read CPU model from /proc/cpuinfo
+
+    // I read the CPU model from /proc/cpuinfo
     std::ifstream cpuinfo("/proc/cpuinfo");
     std::string line;
     while (std::getline(cpuinfo, line)) {
@@ -117,7 +117,7 @@ SystemInfo APIHelper::gather_system_info() {
         }
     }
     
-    // I get memory information
+    // I get memory information in bytes
     struct sysinfo sys_info;
     if (sysinfo(&sys_info) == 0) {
         info.total_memory_bytes = sys_info.totalram * sys_info.mem_unit;
@@ -131,7 +131,7 @@ SystemInfo APIHelper::gather_system_info() {
         info.load_average_15min = sys_info.loads[2] / 65536.0;
     }
     
-    // I get disk information for root filesystem
+    // I get disk information for the root filesystem in bytes
     auto disk_usage = get_disk_usage("/");
     info.total_disk_bytes = disk_usage["total"];
     info.available_disk_bytes = disk_usage["available"];
