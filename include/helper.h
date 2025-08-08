@@ -43,6 +43,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "common_types.h"
+
 // I'm including system headers for Linux functionality
 #include <sys/types.h>
 #include <sys/stat.h>
