@@ -132,7 +132,7 @@ public:
      * @param config Pool configuration
      * @return true if pool was added successfully
      */
-    bool add_pool(const std::string& pool_name, const PHPPoolConfig& config);
+    bool add_pool(const std::string& pool_name, const PHPConfig& config);
 
     /**
      * I'm creating the method to remove a PHP-FPM pool
