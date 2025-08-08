@@ -42,6 +42,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cstdint>
 
 #include "common_types.h"
 
@@ -57,24 +58,37 @@ namespace icy2 {
  * This fixes the "LogLevel does not name a type" errors
  */
 
+struct NetworkInterface;
+
 /**
  * I'm defining the SystemInfo structure
  * This contains comprehensive system information
  */
 struct SystemInfo {
-    std::string hostname;           // I store the system hostname
-    std::string kernel_name;        // I store the kernel name (e.g., "Linux")
-    std::string kernel_version;     // I store the kernel version
-    std::string architecture;       // I store the system architecture
-    std::string distribution;       // I store the Linux distribution name
-    std::string distribution_version; // I store the distribution version
-    long total_memory;              // I store total system memory in KB
-    long available_memory;          // I store available memory in KB
-    int cpu_count;                  // I store the number of CPU cores
-    double load_average_1min;       // I store 1-minute load average
-    double load_average_5min;       // I store 5-minute load average
-    double load_average_15min;      // I store 15-minute load average
-    std::chrono::steady_clock::time_point boot_time; // I store system boot time
+    std::string hostname;                   // I store the system hostname
+    std::string operating_system;           // I store the operating system name
+    std::string kernel_version;             // I store the kernel version
+    std::string architecture;               // I store the system architecture
+    std::string distribution;               // I store the Linux distribution name
+    std::string distribution_version;       // I store the distribution version
+    std::string cpu_model;                  // I store the CPU model string
+    uint32_t cpu_cores;                     // I store the number of CPU cores
+    uint32_t cpu_threads;                   // I store the number of CPU threads
+    uint64_t total_memory_bytes;            // I store total system memory in bytes
+    uint64_t available_memory_bytes;        // I store available memory in bytes
+    uint64_t used_memory_bytes;             // I store used memory in bytes
+    double memory_usage_percent;            // I store memory usage percentage
+    uint64_t total_disk_bytes;              // I store total disk space in bytes
+    uint64_t available_disk_bytes;          // I store available disk space in bytes
+    uint64_t used_disk_bytes;               // I store used disk space in bytes
+    double disk_usage_percent;              // I store disk usage percentage
+    double load_average_1min;               // I store 1-minute load average
+    double load_average_5min;               // I store 5-minute load average
+    double load_average_15min;              // I store 15-minute load average
+    std::chrono::seconds uptime;            // I store system uptime
+    std::chrono::system_clock::time_point boot_time; // I store system boot time
+    std::vector<NetworkInterface> network_interfaces; // I store network interfaces
+    std::map<std::string, std::string> environment_variables; // I store key environment variables
 };
 
 /**
