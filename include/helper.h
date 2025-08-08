@@ -308,12 +308,6 @@ public:
     bool file_exists(const std::string& file_path);
 
     /**
-     * I'm creating the path existence check method
-     * This checks if a filesystem path exists
-     */
-    bool path_exists(const std::string& path);
-
-    /**
      * I'm creating the directory creation method
      * This creates directories recursively
      */
@@ -336,12 +330,6 @@ public:
      * This gets the last modification time of a file - C++17 compatible
      */
     std::chrono::system_clock::time_point get_file_modification_time(const std::string& file_path);
-
-    /**
-     * I'm creating the file size method
-     * This returns the size of a file in bytes
-     */
-    uint64_t get_file_size(const std::string& file_path);
 
     /**
      * I'm creating the string trimming method
@@ -460,6 +448,8 @@ private:
     std::string get_distribution_info();
     std::vector<double> get_load_averages();
     std::vector<NetworkInterface> gather_network_info();
+    bool path_exists(const std::string& path);
+    uint64_t get_file_size(const std::string& file_path);
     std::string format_timestamp(const std::chrono::system_clock::time_point& time_point);
 };
 
