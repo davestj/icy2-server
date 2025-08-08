@@ -613,8 +613,9 @@ std::string PHPHandler::method_to_string(PHPRequestType method) {
     }
 }
 
-bool PHPHandler::validate_request(const std::string& uri, 
+bool PHPHandler::validate_request(const std::string& uri,
                                 const std::unordered_map<std::string, std::string>& headers) {
+    (void)headers;
     // I perform basic security validation
     if (uri.find("..") != std::string::npos) {
         return false; // Directory traversal attempt
@@ -660,21 +661,23 @@ void PHPHandler::close_connection(FastCGIConnection* connection) {
 void PHPHandler::record_successful_request(std::chrono::steady_clock::time_point start_time) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_time);
-    
+    uint64_t duration_ms = static_cast<uint64_t>(duration.count());
+
     std::lock_guard<std::mutex> lock(stats_mutex_);
     stats_.successful_requests++;
-    
+
     double response_time = static_cast<double>(duration.count());
-    stats_.average_response_time_ms = 
-        (stats_.average_response_time_ms * (stats_.successful_requests - 1) + response_time) / 
+    stats_.average_response_time_ms =
+        (stats_.average_response_time_ms * (stats_.successful_requests - 1) + response_time) /
         stats_.successful_requests;
-    
-    if (duration.count() > stats_.peak_response_time_ms) {
-        stats_.peak_response_time_ms = duration.count();
+
+    if (duration_ms > stats_.peak_response_time_ms) {
+        stats_.peak_response_time_ms = duration_ms;
     }
 }
 
 void PHPHandler::record_failed_request(std::chrono::steady_clock::time_point start_time) {
+    (void)start_time;
     std::lock_guard<std::mutex> lock(stats_mutex_);
     stats_.failed_requests++;
     stats_.last_error_time = std::chrono::steady_clock::now();
