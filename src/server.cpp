@@ -183,21 +183,17 @@ bool ICY2Server::initialize(const std::string& config_path) {
             }
         }
 
-        // I create and configure the PHP handler if enabled
+        // I create and initialize the PHP handler if enabled
         if (server_config.php_fpm.enabled) {
-            php_handler_ = std::make_unique<PHPHandler>();
+            php_handler_ = std::make_unique<PHPHandler>(
+                server_config.php_fpm.socket_path,
+                server_config.php_fpm.document_root,
+                server_config.php_fpm);
 
-            if (!php_handler_->configure(server_config.php_fpm)) {
+            if (!php_handler_->initialize()) {
                 std::cerr << "I failed to initialize PHP handler" << std::endl;
                 return false;
             }
-
-            // I add a default PHP-FPM pool using the parsed PHP configuration
-            if (!php_handler_->add_pool("default", server_config.php_fpm)) {
-                std::cerr << "I failed to add PHP-FPM pool" << std::endl;
-                return false;
-            }
-
         }
 
         std::cout << "I successfully initialized ICY2Server" << std::endl;
