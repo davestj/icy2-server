@@ -305,7 +305,7 @@ public:
      * I'm creating the file writing method
      * This safely writes file contents
      */
-    bool write_file_contents(const std::string& file_path, const std::string& contents, bool create_directories = false);
+    bool write_file_contents(const std::string& file_path, const std::string& contents, bool create_dirs = false);
 
     /**
      * I'm creating the file modification time method
