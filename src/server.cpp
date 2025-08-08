@@ -42,6 +42,7 @@
 #include <sys/epoll.h>
 #include <cstring>
 #include <cerrno>
+#include <filesystem>
 
 namespace icy2 {
 
@@ -992,6 +993,81 @@ void ICY2Server::cleanup_stale_connections() {
                 auto age = now - conn->last_activity;
                 return std::chrono::duration_cast<std::chrono::minutes>(age).count() > 5;
             }), connections_.end());
+}
+
+/**
+ * I'm implementing SSL certificate generation
+ * This creates self-signed certificates for development and testing
+ */
+bool ICY2Server::generate_ssl_certificates() {
+    if (!ssl_manager_) {
+        std::cerr << "I cannot generate certificates without SSL manager" << std::endl;
+        return false;
+    }
+
+    if (!config_) {
+        std::cerr << "I cannot access configuration for certificate generation" << std::endl;
+        return false;
+    }
+
+    auto server_config_ptr = config_->get_config();
+    if (!server_config_ptr) {
+        std::cerr << "I failed to get server configuration" << std::endl;
+        return false;
+    }
+
+    const SSLConfig& ssl_cfg = server_config_ptr->ssl;
+    if (ssl_cfg.cert_file.empty() || ssl_cfg.key_file.empty()) {
+        std::cerr << "I do not have certificate or key file paths configured" << std::endl;
+        return false;
+    }
+
+    namespace fs = std::filesystem;
+    try {
+        fs::path cert_path = ssl_cfg.cert_file;
+        fs::path key_path = ssl_cfg.key_file;
+
+        if (!cert_path.parent_path().empty()) {
+            fs::create_directories(cert_path.parent_path());
+        }
+        if (!key_path.parent_path().empty()) {
+            fs::create_directories(key_path.parent_path());
+        }
+
+        CertificateGenerationParams params{};
+        params.type = CertificateType::SELF_SIGNED;
+        params.key_size = 2048;
+        params.key_algorithm = "RSA";
+        params.validity_days = 365;
+        params.country = "US";
+        params.state = "California";
+        params.locality = "San Francisco";
+        params.organization = "ICY2";
+        params.organizational_unit = "Development";
+        params.common_name = "localhost";
+        params.email = "admin@localhost";
+        params.subject_alt_names = {"localhost", "127.0.0.1"};
+        params.key_usage = {"digitalSignature", "keyEncipherment"};
+        params.extended_key_usage = {"serverAuth"};
+
+        return ssl_manager_->generate_self_signed_certificate(params,
+                                                             cert_path.string(),
+                                                             key_path.string());
+    } catch (const std::exception& e) {
+        std::cerr << "I failed to generate SSL certificates: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+/**
+ * I'm implementing server information retrieval
+ * This returns comprehensive server information in JSON format
+ */
+std::string ICY2Server::get_server_info() const {
+    if (!api_helper_) {
+        return "{}";
+    }
+    return api_helper_->get_server_info();
 }
 
 /**
