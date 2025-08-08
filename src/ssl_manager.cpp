@@ -31,6 +31,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <ctime>
+#include <openssl/asn1.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -567,20 +568,35 @@ CertificateStatus SSLManager::check_certificate_status(const CertificateInfo& ce
     if (!load_certificate_file(cert_info.certificate_path, &cert)) {
         return CertificateStatus::INVALID;
     }
-    
-    // I check expiration
+
+    // I check expiration against current time
     auto now = std::chrono::system_clock::now();
     time_t now_time = std::chrono::system_clock::to_time_t(now);
-    
+
     ASN1_TIME* not_after = X509_get_notAfter(cert);
     ASN1_TIME* not_before = X509_get_notBefore(cert);
-    
-    // I convert ASN1_TIME to time_t (simplified check)
-    // In production, I would use proper ASN1_TIME comparison
-    
+
+    // I verify the certificate is currently valid
+    if (X509_cmp_time(not_before, &now_time) > 0) {
+        X509_free(cert);
+        return CertificateStatus::INVALID;
+    }
+
+    if (X509_cmp_time(not_after, &now_time) < 0) {
+        X509_free(cert);
+        return CertificateStatus::EXPIRED;
+    }
+
+    // I check if the certificate will expire within 30 days
+    int days = 0, seconds = 0;
+    if (ASN1_TIME_diff(&days, &seconds, nullptr, not_after)) {
+        if (days < 30) {
+            X509_free(cert);
+            return CertificateStatus::EXPIRING_SOON;
+        }
+    }
+
     X509_free(cert);
-    
-    // I return valid for now (would implement proper expiry checking)
     return CertificateStatus::VALID;
 }
 
