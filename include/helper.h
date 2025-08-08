@@ -242,6 +242,18 @@ public:
     std::string escape_json_string(const std::string& input);
 
     /**
+     * I'm creating the HTML escaping method
+     * This escapes special characters for HTML output
+     */
+    std::string html_escape(const std::string& input);
+
+    /**
+     * I'm creating the UTF-8 validation method
+     * This checks if a string is valid UTF-8
+     */
+    bool is_valid_utf8(const std::string& text);
+
+    /**
      * I'm creating the URL encoding method
      * This encodes strings for safe URL usage
      */
@@ -278,6 +290,12 @@ public:
     std::string sha256_hash(const std::string& input);
 
     /**
+     * I'm creating the generic hash method
+     * This calculates a hash using the specified algorithm
+     */
+    std::string calculate_hash(const std::string& data, const std::string& algorithm);
+
+    /**
      * I'm creating the file validation method
      * This validates file paths for security
      */
@@ -288,6 +306,12 @@ public:
      * This checks if a file exists and is accessible
      */
     bool file_exists(const std::string& file_path);
+
+    /**
+     * I'm creating the path existence check method
+     * This checks if a filesystem path exists
+     */
+    bool path_exists(const std::string& path);
 
     /**
      * I'm creating the directory creation method
@@ -312,6 +336,12 @@ public:
      * This gets the last modification time of a file - C++17 compatible
      */
     std::chrono::system_clock::time_point get_file_modification_time(const std::string& file_path);
+
+    /**
+     * I'm creating the file size method
+     * This returns the size of a file in bytes
+     */
+    uint64_t get_file_size(const std::string& file_path);
 
     /**
      * I'm creating the string trimming method
@@ -341,8 +371,8 @@ public:
      * I'm creating the case conversion methods
      * These convert strings to upper or lower case
      */
-    std::string to_upper_case(const std::string& text);
-    std::string to_lower_case(const std::string& text);
+    std::string to_uppercase(const std::string& text);
+    std::string to_lowercase(const std::string& text);
 
     /**
      * I'm creating the IP address validation method
@@ -373,6 +403,12 @@ public:
      * This formats file sizes in human-readable format
      */
     std::string format_file_size(uint64_t size_bytes);
+
+    /**
+     * I'm creating the number formatting method
+     * This formats numbers with unit prefixes
+     */
+    std::string format_number_with_units(uint64_t value, const std::string& unit, bool binary = false);
 
     /**
      * I'm creating the API response creation method
