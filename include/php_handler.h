@@ -17,6 +17,7 @@
 #include <chrono>
 #include <functional>
 #include <fcgiapp.h>
+#include "common_types.h"
 
 namespace icy2 {
 
@@ -103,9 +104,43 @@ struct PHPHandlerStats {
 
 class PHPHandler {
 public:
+    /**
+     * I'm creating the constructor to initialize the PHP handler
+     */
     PHPHandler(const std::string& socket_path, const std::string& document_root,
-               const PHPConfiguration& config);
-    ~PHPHandler();
+               const PHPConfig& config);
+
+    /**
+     * I'm creating the destructor to clean up resources
+     */
+    virtual ~PHPHandler();
+
+    /**
+     * I'm creating the method to configure the PHP handler
+     * @param enabled Whether PHP processing is enabled
+     * @param document_root Default document root directory
+     * @param index_files List of index file names
+     * @param timeout_ms Global request timeout in milliseconds
+     * @return true if configuration succeeded
+     */
+    bool configure(bool enabled, const std::string& document_root,
+                  const std::vector<std::string>& index_files, int timeout_ms);
+
+    /**
+     * I'm creating the method to add a PHP-FPM pool
+     * @param pool_name Unique pool identifier
+     * @param config Pool configuration
+     * @return true if pool was added successfully
+     */
+    bool add_pool(const std::string& pool_name, const PHPPoolConfig& config);
+
+    /**
+     * I'm creating the method to remove a PHP-FPM pool
+     * @param pool_name Pool identifier to remove
+     * @return true if pool was removed successfully
+     */
+    bool remove_pool(const std::string& pool_name);
+
 
     bool initialize();
     void shutdown();
