@@ -17,6 +17,8 @@
  * 2025-07-16 - Implemented comprehensive error handling and security validation
  * 2025-07-16 - Added environment variable management and configuration integration
  * 2025-07-16 - Integrated timeout handling and resource management
+ * 2025-08-08 - REFACTOR: Configuration now handled solely via constructor; removed
+ *              configure/add_pool/remove_pool interface
  *
  * Next Dev Feature: I plan to add PHP session clustering and advanced caching mechanisms
  * Git Commit: feat: implement complete PHP-FMP FastCGI integration with nginx-style processing
