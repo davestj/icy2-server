@@ -13,11 +13,13 @@
 #include <unordered_map>
 #include <vector>
 #include <thread>
-#include <atomic>
-#include <chrono>
 #include <functional>
 #include <fcgiapp.h>
 #include "common_types.h"
+
+// Configuration is handled entirely via the constructor.  Legacy
+// configure/add_pool/remove_pool methods have been removed from the
+// public interface.
 
 namespace icy2 {
 
