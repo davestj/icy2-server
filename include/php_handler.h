@@ -98,13 +98,13 @@ struct PHPHandlerStats {
 
     PHPHandlerStats() = default;
     PHPHandlerStats(const PHPHandlerStats& other)
-        : total_requests(other.total_requests.load()),
-          successful_requests(other.successful_requests.load()),
-          failed_requests(other.failed_requests.load()),
-          average_response_time_ms(other.average_response_time_ms),
-          peak_response_time_ms(other.peak_response_time_ms),
-          active_connections(other.active_connections.load()),
-          last_error_time(other.last_error_time) {}
+        : total_requests(other.total_requests.load())
+        , successful_requests(other.successful_requests.load())
+        , failed_requests(other.failed_requests.load())
+        , average_response_time_ms(other.average_response_time_ms)
+        , peak_response_time_ms(other.peak_response_time_ms)
+        , active_connections(other.active_connections.load())
+        , last_error_time(other.last_error_time) {}
 
     PHPHandlerStats& operator=(const PHPHandlerStats& other) {
         total_requests.store(other.total_requests.load());
