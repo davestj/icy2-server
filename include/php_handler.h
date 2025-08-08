@@ -142,7 +142,7 @@ private:
     std::string method_to_string(PHPRequestType method);
     bool validate_request(const std::string& uri,
                           const std::unordered_map<std::string, std::string>& headers);
-    bool test_php_fmp_connection();
+    bool test_php_fpm_connection();
     void setup_environment_template();
     void close_connection(FastCGIConnection* connection);
     void record_successful_request(std::chrono::steady_clock::time_point start_time);

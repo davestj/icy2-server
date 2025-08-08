@@ -3,11 +3,11 @@
  * Path: /var/www/mcaster1.com/DNAS/icy2-server/src/php_handler.cpp
  * Author: davestj@gmail.com (David St. John)
  * Created: 2025-07-16
- * Purpose: I created this PHP-FMP FastCGI handler implementation to provide seamless
+ * Purpose: I created this PHP-FPM FastCGI handler implementation to provide seamless
  *          PHP integration that mimics nginx's php-fpm functionality for web admin
  *          interfaces and dynamic content generation in ICY2-SERVER.
  * 
- * Reason: I need robust PHP-FMP integration to support modern web-based administration,
+ * Reason: I need robust PHP-FPM integration to support modern web-based administration,
  *         dynamic configuration management, and interactive dashboards while maintaining
  *         the performance and security standards of the core streaming server.
  *
@@ -21,9 +21,9 @@
  *              configure/add_pool/remove_pool interface
  *
  * Next Dev Feature: I plan to add PHP session clustering and advanced caching mechanisms
- * Git Commit: feat: implement complete PHP-FMP FastCGI integration with nginx-style processing
+ * Git Commit: feat: implement complete PHP-FPM FastCGI integration with nginx-style processing
  *
- * TODO: Add session replication, response caching, load balancing across PHP-FMP pools
+ * TODO: Add session replication, response caching, load balancing across PHP-FPM pools
  */
 
 #include "php_handler.h"
@@ -43,7 +43,7 @@ namespace icy2 {
 
 /**
  * I'm implementing the PHP handler constructor
- * This initializes my PHP-FMP integration with proper configuration
+ * This initializes my PHP-FPM integration with proper configuration
  */
 PHPHandler::PHPHandler(const std::string& socket_path, const std::string& document_root,
                        const PHPConfig& config)
@@ -85,7 +85,7 @@ PHPHandler::~PHPHandler() {
 
 /**
  * I'm implementing the initialization function
- * This sets up my PHP-FMP connection pool and validates configuration
+ * This sets up my PHP-FPM connection pool and validates configuration
  */
 bool PHPHandler::initialize() {
     std::lock_guard<std::mutex> lock(connection_mutex_);
@@ -94,9 +94,9 @@ bool PHPHandler::initialize() {
         return true;
     }
     
-    // I test the PHP-FMP socket connectivity
+    // I test the PHP-FPM socket connectivity
     if (!test_php_fpm_connection()) {
-        last_error_ = "Cannot connect to PHP-FMP socket: " + socket_path_;
+        last_error_ = "Cannot connect to PHP-FPM socket: " + socket_path_;
         return false;
     }
     
@@ -196,7 +196,7 @@ bool PHPHandler::handle_http_request(PHPRequestType method, const std::string& u
         if (!connection) {
             response.status = PHPResponseStatus::CONNECTION_FAILED;
             response.http_status_code = 503;
-            response.error_message = "No available PHP-FMP connections";
+            response.error_message = "No available PHP-FPM connections";
             record_failed_request(request_start);
             return false;
         }
@@ -246,7 +246,7 @@ bool PHPHandler::process_fastcgi_request(FastCGIConnection* connection,
     // I ensure the connection is active
     if (!ensure_connection_active(connection)) {
         response.status = PHPResponseStatus::CONNECTION_FAILED;
-        response.error_message = "Failed to establish PHP-FMP connection";
+        response.error_message = "Failed to establish PHP-FPM connection";
         return false;
     }
     
@@ -535,7 +535,7 @@ bool PHPHandler::is_connection_valid(FastCGIConnection* connection) {
 
 /**
  * I'm implementing connection establishment
- * This creates actual socket connections to PHP-FMP
+ * This creates actual socket connections to PHP-FPM
  */
 bool PHPHandler::ensure_connection_active(FastCGIConnection* connection) {
     if (connection->is_connected && connection->socket_fd >= 0) {
@@ -558,7 +558,7 @@ bool PHPHandler::ensure_connection_active(FastCGIConnection* connection) {
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, socket_path_.c_str(), sizeof(addr.sun_path) - 1);
     
-    // I connect to PHP-FMP socket
+    // I connect to PHP-FPM socket
     if (connect(connection->socket_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         if (errno != EINPROGRESS) {
             close(connection->socket_fd);
@@ -628,7 +628,7 @@ bool PHPHandler::validate_request(const std::string& uri,
     return true;
 }
 
-bool PHPHandler::test_php_fmp_connection() {
+bool PHPHandler::test_php_fpm_connection() {
     int test_socket = socket(AF_UNIX, SOCK_STREAM, 0);
     if (test_socket < 0) {
         return false;

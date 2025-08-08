@@ -535,8 +535,8 @@ AC_ARG_ENABLE([ssl],
 AM_CONDITIONAL([SSL], [test "x$ssl" = "xyes"])
 
 AC_ARG_ENABLE([php-fpm],
-    AS_HELP_STRING([--enable-php-fmp], [Enable PHP-FPM support]),
-    [php_fpm=$enableval], [php_fmp=yes])
+    AS_HELP_STRING([--enable-php-fpm], [Enable PHP-FPM support]),
+    [php_fpm=$enableval], [php_fpm=yes])
 
 AM_CONDITIONAL([PHP_FPM], [test "x$php_fpm" = "xyes"])
 
@@ -553,7 +553,7 @@ ICY2-SERVER Configuration Summary:
   Version:      ${VERSION}
   Debug build:  ${debug}
   SSL support:  ${ssl}
-  PHP-FPM:      ${php_fmp}
+  PHP-FPM:      ${php_fpm}
   
   CC:           ${CC}
   CXX:          ${CXX}

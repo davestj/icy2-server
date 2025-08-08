@@ -136,7 +136,7 @@ bool ConfigParser::load_config(const std::string& file_path) {
 
         // I parse PHP configuration using actual PHPConfig members
         if (root["php"]) {
-            parse_success &= parse_php_config(root["php"], new_config->php_fmp);
+            parse_success &= parse_php_config(root["php"], new_config->php_fpm);
         }
 
         // I parse API configuration using actual APIConfig members
