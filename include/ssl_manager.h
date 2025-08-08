@@ -198,7 +198,7 @@ private:
     // I'm defining certificate storage and tracking
     std::map<std::string, CertificateInfo> certificates_; // I store certificate information
     std::map<std::string, CertificateMonitoring> monitoring_; // I track certificate monitoring
-    std::mutex certificates_mutex_;         // I protect certificate data
+    mutable std::mutex certificates_mutex_; // I protect certificate data
     std::mutex monitoring_mutex_;           // I protect monitoring data
 
     // I'm defining certificate validation and caching

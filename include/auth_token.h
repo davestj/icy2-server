@@ -222,15 +222,15 @@ private:
     std::unordered_map<std::string, UserAccount> users_;    // I store user accounts
     std::unordered_map<std::string, UserSession> sessions_; // I manage active sessions
     std::unordered_map<std::string, APIKey> api_keys_;      // I store API keys
-    std::mutex users_mutex_;                                // I protect user data
+    mutable std::mutex users_mutex_;                        // I protect user data
     std::mutex sessions_mutex_;                             // I protect session data
     std::mutex api_keys_mutex_;                             // I protect API key data
 
     // I'm defining authentication tracking
     std::vector<AuthAttempt> auth_attempts_;                // I track auth attempts
     std::vector<SecurityEvent> security_events_;            // I log security events
-    std::mutex auth_attempts_mutex_;                        // I protect attempt data
-    std::mutex security_events_mutex_;                      // I protect event data
+    mutable std::mutex auth_attempts_mutex_;                // I protect attempt data
+    mutable std::mutex security_events_mutex_;              // I protect event data
 
     // I'm defining configuration
     std::string jwt_secret_;                                // I store JWT signing secret
@@ -245,7 +245,7 @@ private:
     std::unordered_map<std::string, std::vector<std::chrono::steady_clock::time_point>> rate_limits_; // I track IP rates
     std::unordered_map<std::string, int> failed_attempts_; // I count failed attempts per IP
     std::unordered_map<std::string, std::chrono::steady_clock::time_point> lockouts_; // I track IP lockouts
-    std::mutex rate_limit_mutex_;                           // I protect rate limit data
+    mutable std::mutex rate_limit_mutex_;                   // I protect rate limit data
 
     // I'm defining helper methods
     std::string generate_session_id();                      // I create unique session IDs

@@ -237,7 +237,7 @@ private:
 
     // I'm defining statistics and monitoring
     PHPHandlerStats stats_;                             // I track handler statistics
-    std::mutex stats_mutex_;                            // I protect statistics data
+    mutable std::mutex stats_mutex_;                    // I protect statistics data
 
     // I'm defining helper methods
     bool connect_to_pool(const std::string& pool_name, FastCGIConnection& conn); // I connect to PHP-FPM
