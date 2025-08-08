@@ -43,6 +43,7 @@
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 #include <ifaddrs.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
@@ -165,8 +166,8 @@ SystemInfo APIHelper::gather_system_info() {
  * I'm implementing the network information gathering method
  * This collects details about network interfaces
  */
-std::vector<NetworkInfo> APIHelper::gather_network_info() {
-    std::vector<NetworkInfo> interfaces;
+std::vector<NetworkInterface> APIHelper::gather_network_info() {
+    std::vector<NetworkInterface> interfaces;
     
     struct ifaddrs* ifaddr;
     if (getifaddrs(&ifaddr) == -1) {
@@ -178,11 +179,10 @@ std::vector<NetworkInfo> APIHelper::gather_network_info() {
             continue; // I skip non-IPv4 interfaces for now
         }
         
-        NetworkInfo info;
-        info.interface_name = ifa->ifa_name;
+        NetworkInterface info;
+        info.name = ifa->ifa_name;
         info.is_up = (ifa->ifa_flags & IFF_UP) != 0;
         info.is_loopback = (ifa->ifa_flags & IFF_LOOPBACK) != 0;
-        info.is_wireless = false; // I'll implement wireless detection later
         
         // I get IP address
         struct sockaddr_in* addr = (struct sockaddr_in*)ifa->ifa_addr;
@@ -197,45 +197,20 @@ std::vector<NetworkInfo> APIHelper::gather_network_info() {
         // I get broadcast address
         if (ifa->ifa_broadaddr) {
             struct sockaddr_in* broadcast = (struct sockaddr_in*)ifa->ifa_broadaddr;
-            info.broadcast_address = inet_ntoa(broadcast->sin_addr);
+            info.broadcast = inet_ntoa(broadcast->sin_addr);
         }
         
         // I read statistics from /sys/class/net if available
-        std::string stats_path = "/sys/class/net/" + info.interface_name + "/statistics/";
+        std::string stats_path = "/sys/class/net/" + info.name + "/statistics/";
         
         std::ifstream rx_bytes_file(stats_path + "rx_bytes");
         if (rx_bytes_file.is_open()) {
             rx_bytes_file >> info.bytes_received;
         }
-        
+
         std::ifstream tx_bytes_file(stats_path + "tx_bytes");
         if (tx_bytes_file.is_open()) {
-            tx_bytes_file >> info.bytes_transmitted;
-        }
-        
-        std::ifstream rx_packets_file(stats_path + "rx_packets");
-        if (rx_packets_file.is_open()) {
-            rx_packets_file >> info.packets_received;
-        }
-        
-        std::ifstream tx_packets_file(stats_path + "tx_packets");
-        if (tx_packets_file.is_open()) {
-            tx_packets_file >> info.packets_transmitted;
-        }
-        
-        std::ifstream rx_errors_file(stats_path + "rx_errors");
-        if (rx_errors_file.is_open()) {
-            rx_errors_file >> info.errors_received;
-        }
-        
-        std::ifstream tx_errors_file(stats_path + "tx_errors");
-        if (tx_errors_file.is_open()) {
-            tx_errors_file >> info.errors_transmitted;
-        }
-        
-        std::ifstream mtu_file(stats_path + "../mtu");
-        if (mtu_file.is_open()) {
-            mtu_file >> info.mtu;
+            tx_bytes_file >> info.bytes_sent;
         }
         
         interfaces.push_back(info);
@@ -317,7 +292,7 @@ BuildInfo APIHelper::gather_build_info() {
  */
 std::string APIHelper::get_server_info() {
     SystemInfo system_info = gather_system_info();
-    std::vector<NetworkInfo> network_info = gather_network_info();
+    std::vector<NetworkInterface> network_info = gather_network_info();
     
     std::map<std::string, std::string> data;
     
@@ -972,7 +947,7 @@ void APIHelper::set_log_callback(std::function<void(LogLevel, const std::string&
     log_callback_ = callback;
 }
 
-std::vector<NetworkInfo> APIHelper::get_network_interfaces() {
+std::vector<NetworkInterface> APIHelper::get_network_interfaces() {
     return gather_network_info();
 }
 
