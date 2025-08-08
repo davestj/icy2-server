@@ -44,13 +44,6 @@ enum class PHPResponseStatus {
     SECURITY_VIOLATION
 };
 
-struct PHPConfiguration {
-    bool enabled = true;
-    std::string socket_path;
-    std::string document_root;
-    std::vector<std::string> index_files;
-    int timeout_seconds = 90;
-};
 
 struct FastCGIEnvironment {
     std::string script_filename;
@@ -117,14 +110,10 @@ public:
 
     /**
      * I'm creating the method to configure the PHP handler
-     * @param enabled Whether PHP processing is enabled
-     * @param document_root Default document root directory
-     * @param index_files List of index file names
-     * @param timeout_ms Global request timeout in milliseconds
+     * @param config PHP-FPM configuration settings
      * @return true if configuration succeeded
      */
-    bool configure(bool enabled, const std::string& document_root,
-                  const std::vector<std::string>& index_files, int timeout_ms);
+    bool configure(const PHPConfig& config);
 
     /**
      * I'm creating the method to add a PHP-FPM pool
@@ -197,7 +186,7 @@ private:
 
     std::string socket_path_;
     std::string document_root_;
-    PHPConfiguration config_;
+    PHPConfig config_;
     int connection_pool_size_;
     int request_timeout_ms_;
     uint16_t next_request_id_;
