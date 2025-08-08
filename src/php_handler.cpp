@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 
 namespace icy2 {
 
