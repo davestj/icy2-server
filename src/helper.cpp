@@ -24,6 +24,7 @@
  * TODO: Add database abstraction, caching layer, advanced string formatting, crypto helpers
  */
 
+#include "common_types.h"
 #include "helper.h"
 #include <iostream>
 #include <fstream>
@@ -943,8 +944,8 @@ std::vector<uint8_t> APIHelper::base64_decode(const std::string& encoded) {
 /**
  * I'm implementing remaining interface methods
  */
-void APIHelper::set_log_callback(std::function<void(LogLevel, const std::string&)> callback) {
-    log_callback_ = callback;
+void APIHelper::set_log_callback(LogCallback callback) {
+    log_callback_ = std::move(callback);
 }
 
 std::vector<NetworkInterface> APIHelper::get_network_interfaces() {
