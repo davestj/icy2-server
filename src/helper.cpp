@@ -33,6 +33,7 @@
 #include <random>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
@@ -46,6 +47,8 @@
 #include <arpa/inet.h>
 
 namespace icy2 {
+
+namespace fs = std::filesystem;
 
 /**
  * I'm implementing the APIHelper constructor
@@ -824,7 +827,7 @@ double APIHelper::get_cpu_usage() {
  */
 bool APIHelper::create_directories(const std::string& path) {
     try {
-        std::filesystem::create_directories(path);
+        fs::create_directories(path);
         return true;
     } catch (const std::exception&) {
         return false;
@@ -832,14 +835,14 @@ bool APIHelper::create_directories(const std::string& path) {
 }
 
 bool APIHelper::path_exists(const std::string& path) {
-    return std::filesystem::exists(path);
+    return fs::exists(path);
 }
 
 std::chrono::system_clock::time_point APIHelper::get_file_modification_time(const std::string& file_path) {
     try {
-        auto ftime = std::filesystem::last_write_time(file_path);
+        auto ftime = fs::last_write_time(file_path);
         auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-            ftime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+            ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
         return sctp;
     } catch (const std::exception&) {
         return std::chrono::system_clock::time_point{};
@@ -848,7 +851,7 @@ std::chrono::system_clock::time_point APIHelper::get_file_modification_time(cons
 
 uint64_t APIHelper::get_file_size(const std::string& file_path) {
     try {
-        return std::filesystem::file_size(file_path);
+        return fs::file_size(file_path);
     } catch (const std::exception&) {
         return 0;
     }
