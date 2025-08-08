@@ -456,9 +456,10 @@ private:
     /**
      * I'm creating internal utility methods
      * These provide implementation details for public methods
-     */
+    */
     std::string get_distribution_info();
     std::vector<double> get_load_averages();
+    std::vector<NetworkInterface> gather_network_info();
     std::string format_timestamp(const std::chrono::system_clock::time_point& time_point);
 };
 
