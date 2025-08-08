@@ -139,6 +139,7 @@ dev-reset: bootstrap-clean
 	@echo "Regenerating autotools build system..."
 	./autogen.sh
 	@echo "Configuring with development options..."
+
         ./configure --enable-debug --enable-ssl --enable-php-fpm
 	@echo "Development environment reset complete."
 

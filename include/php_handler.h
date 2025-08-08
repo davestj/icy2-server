@@ -13,11 +13,13 @@
 #include <unordered_map>
 #include <vector>
 #include <thread>
-#include <atomic>
-#include <chrono>
 #include <functional>
 #include <fcgiapp.h>
 #include "common_types.h"
+
+// Configuration is handled entirely via the constructor.  Legacy
+// configure/add_pool/remove_pool methods have been removed from the
+// public interface.
 
 namespace icy2 {
 
@@ -107,29 +109,6 @@ public:
      * I'm creating the destructor to clean up resources
      */
     virtual ~PHPHandler();
-
-    /**
-     * I'm creating the method to configure the PHP handler
-     * @param config PHP-FPM configuration settings
-     * @return true if configuration succeeded
-     */
-    bool configure(const PHPConfig& config);
-
-    /**
-     * I'm creating the method to add a PHP-FPM pool
-     * @param pool_name Unique pool identifier
-     * @param config Pool configuration
-     * @return true if pool was added successfully
-     */
-    bool add_pool(const std::string& pool_name, const PHPConfig& config);
-
-    /**
-     * I'm creating the method to remove a PHP-FPM pool
-     * @param pool_name Pool identifier to remove
-     * @return true if pool was removed successfully
-     */
-    bool remove_pool(const std::string& pool_name);
-
 
     bool initialize();
     void shutdown();

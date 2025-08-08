@@ -14,10 +14,10 @@
  * Changelog:
  * 2025-07-21 - FIXED: Aligned all method signatures with actual header declarations
  * 2025-07-21 - FIXED: Updated ClientConnection member usage to match actual struct
- * 2025-07-21 - FIXED: Corrected PHP handler add_pool call to provide both arguments
  * 2025-07-21 - FIXED: Removed duplicate is_running() method (already inline in header)
  * 2025-07-21 - FIXED: Updated start() method signature to match header parameters
  * 2025-07-21 - FIXED: Removed non-existent server_thread_ reference
+ * 2025-08-08 - REFACTOR: Removed obsolete PHP handler configuration calls
  *
  * Next Dev Feature: I will implement the missing method bodies for complete functionality
  * Git Commit: fix: align server.cpp implementation with actual header interface
@@ -197,6 +197,7 @@ bool ICY2Server::initialize(const std::string& config_path) {
                 std::cerr << "I failed to add PHP-FPM pool" << std::endl;
                 return false;
             }
+
         }
 
         std::cout << "I successfully initialized ICY2Server" << std::endl;
