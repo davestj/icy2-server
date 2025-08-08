@@ -197,16 +197,8 @@ bool ICY2Server::initialize(const std::string& config_path) {
                 return false;
             }
 
-            // FIXED: I add a default PHP-FPM pool with correct two-argument signature
-            PHPPoolConfig pool_config;
-            pool_config.pool_name = "default";
-            pool_config.socket_path = server_config.php_fmp.socket_path;
-            pool_config.document_root = server_config.php_fmp.document_root;
-            pool_config.index_files = server_config.php_fmp.index_files;
-            pool_config.connection_timeout_ms = server_config.php_fmp.timeout_seconds * 1000;
-            pool_config.request_timeout_ms = server_config.php_fmp.timeout_seconds * 1000;
-
-            if (!php_handler_->add_pool("default", pool_config)) {
+            // I add a default PHP-FPM pool using the parsed PHP configuration
+            if (!php_handler_->add_pool("default", server_config.php_fmp)) {
                 std::cerr << "I failed to add PHP-FPM pool" << std::endl;
                 return false;
             }
