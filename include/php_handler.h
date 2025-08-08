@@ -95,6 +95,27 @@ struct PHPHandlerStats {
     uint64_t peak_response_time_ms{0};
     std::atomic<uint64_t> active_connections{0};
     std::chrono::steady_clock::time_point last_error_time;
+
+    PHPHandlerStats() = default;
+    PHPHandlerStats(const PHPHandlerStats& other)
+        : total_requests(other.total_requests.load()),
+          successful_requests(other.successful_requests.load()),
+          failed_requests(other.failed_requests.load()),
+          average_response_time_ms(other.average_response_time_ms),
+          peak_response_time_ms(other.peak_response_time_ms),
+          active_connections(other.active_connections.load()),
+          last_error_time(other.last_error_time) {}
+
+    PHPHandlerStats& operator=(const PHPHandlerStats& other) {
+        total_requests.store(other.total_requests.load());
+        successful_requests.store(other.successful_requests.load());
+        failed_requests.store(other.failed_requests.load());
+        average_response_time_ms = other.average_response_time_ms;
+        peak_response_time_ms = other.peak_response_time_ms;
+        active_connections.store(other.active_connections.load());
+        last_error_time = other.last_error_time;
+        return *this;
+    }
 };
 
 class PHPHandler {
