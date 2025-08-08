@@ -187,12 +187,7 @@ bool ICY2Server::initialize(const std::string& config_path) {
         if (server_config.php_fmp.enabled) {
             php_handler_ = std::make_unique<PHPHandler>();
 
-            std::vector<std::string> index_files = server_config.php_fmp.index_files;
-            if (!php_handler_->configure(
-                true,
-                server_config.php_fmp.document_root,
-                index_files,
-                server_config.php_fmp.timeout_seconds * 1000)) {
+            if (!php_handler_->configure(server_config.php_fmp)) {
                 std::cerr << "I failed to initialize PHP handler" << std::endl;
                 return false;
             }
