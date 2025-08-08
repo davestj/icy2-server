@@ -936,12 +936,52 @@ std::string AuthTokenManager::base64_encode(const std::string& input) {
 }
 
 std::string AuthTokenManager::base64_decode(const std::string& input) {
-    // I implement simple base64 decoding
+    // I implement full base64 decoding with URL-safe support
+    const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    int table[256];
+    for (int i = 0; i < 256; ++i) {
+        table[i] = -1;
+    }
+    for (size_t i = 0; i < chars.size(); ++i) {
+        table[static_cast<unsigned char>(chars[i])] = i;
+    }
+    table[static_cast<unsigned char>('-')] = 62;
+    table[static_cast<unsigned char>('_')] = 63;
+
+    std::string data = input;
+    std::replace(data.begin(), data.end(), '-', '+');
+    std::replace(data.begin(), data.end(), '_', '/');
+    while (data.size() % 4 != 0) {
+        data.push_back('=');
+    }
+
     std::string result;
-    
-    // I would implement full base64 decoding here
-    // For this implementation, I'll return the input for simplicity
-    return input;
+    for (size_t i = 0; i < data.size(); i += 4) {
+        int val = 0;
+        int pad = 0;
+        for (int j = 0; j < 4; ++j) {
+            char c = data[i + j];
+            if (c == '=') {
+                val <<= 6;
+                ++pad;
+            } else {
+                int d = table[static_cast<unsigned char>(c)];
+                if (d == -1) {
+                    return "";
+                }
+                val = (val << 6) | d;
+            }
+        }
+        for (int j = 16; j >= 0; j -= 8) {
+            if (pad > 0) {
+                --pad;
+            } else {
+                result.push_back(static_cast<char>((val >> j) & 0xFF));
+            }
+        }
+    }
+
+    return result;
 }
 
 std::string AuthTokenManager::hmac_sha256(const std::string& data, const std::string& key) {
