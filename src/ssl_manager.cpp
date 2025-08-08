@@ -653,8 +653,10 @@ bool SSLManager::extract_certificate_info(X509* cert, CertificateInfo& info) {
     }
     
     // I extract signature algorithm
-    const ASN1_OBJECT* sig_alg_obj;
-    X509_get0_signature(nullptr, &sig_alg_obj, cert);
+    const ASN1_BIT_STRING* sig = nullptr;
+    const X509_ALGOR* sig_alg = nullptr;
+    X509_get0_signature(&sig, &sig_alg, cert);
+    const ASN1_OBJECT* sig_alg_obj = sig_alg ? sig_alg->algorithm : nullptr;
     if (sig_alg_obj) {
         char sig_alg_name[256];
         OBJ_obj2txt(sig_alg_name, sizeof(sig_alg_name), sig_alg_obj, 0);
