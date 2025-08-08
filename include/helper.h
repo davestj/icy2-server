@@ -105,6 +105,8 @@ struct BuildInfo {
     std::string build_host;         // I store the build hostname
     std::string build_user;         // I store the build username
     std::string features;           // I store enabled features
+    std::vector<std::string> compile_flags;   // I store compiler flags
+    std::vector<std::string> linked_libraries; // I store linked libraries
     bool ssl_enabled;               // I indicate if SSL support is compiled in
     bool php_support;               // I indicate if PHP-FPM support is available
     bool debug_build;               // I indicate if this is a debug build
