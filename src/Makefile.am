@@ -54,9 +54,12 @@ icy2_server_SOURCES = \
     icy_handler.cpp \
     config_parser.cpp \
     auth_token.cpp \
-    ssl_manager.cpp \
     php_handler.cpp \
     helper.cpp
+
+if SSL
+icy2_server_SOURCES += ssl_manager.cpp
+endif
 
 # I'm defining header dependencies for proper rebuilding
 noinst_HEADERS = \
@@ -69,7 +72,10 @@ noinst_HEADERS = \
     $(top_srcdir)/include/helper.h
 
 # I'm defining external library dependencies
-icy2_server_LDADD = $(OPENSSL_LIBS) $(YAML_CPP_LIBS) -lfcgi -lpthread -ldl
+icy2_server_LDADD = $(YAML_CPP_LIBS) -lfcgi -lpthread -ldl
+if SSL
+icy2_server_LDADD += $(OPENSSL_LIBS)
+endif
 
 # I'm setting up library installation
 lib_LIBRARIES = libicy2-server.a
@@ -83,9 +89,12 @@ libicy2_server_a_SOURCES = \
     icy_handler.cpp \
     config_parser.cpp \
     auth_token.cpp \
-    ssl_manager.cpp \
     php_handler.cpp \
     helper.cpp
+
+if SSL
+libicy2_server_a_SOURCES += ssl_manager.cpp
+endif
 
 # I'm setting library-specific compiler flags
 libicy2_server_a_CXXFLAGS = $(AM_CXXFLAGS) -fPIC
@@ -95,7 +104,10 @@ if SHARED_LIBS
 libicy2_server_la_SOURCES = $(libicy2_server_a_SOURCES)
 libicy2_server_la_CXXFLAGS = $(AM_CXXFLAGS) -fPIC
 libicy2_server_la_LDFLAGS = -version-info 1:1:0 -shared
-libicy2_server_la_LIBADD = $(OPENSSL_LIBS) $(YAML_CPP_LIBS) -lfcgi -lpthread -ldl
+libicy2_server_la_LIBADD = $(YAML_CPP_LIBS) -lfcgi -lpthread -ldl
+if SSL
+libicy2_server_la_LIBADD += $(OPENSSL_LIBS)
+endif
 endif
 
 # I'm defining header installation for the public API

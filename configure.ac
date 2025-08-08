@@ -64,11 +64,18 @@ AX_PTHREAD([
 ])
 
 # I'm checking for required libraries (all passed in your test)
+if test "x$enable_ssl" = "xyes"; then
 PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.1.0], [
     AC_DEFINE([HAVE_OPENSSL], [1], [Define if OpenSSL is available])
 ], [
     AC_MSG_ERROR([I require OpenSSL 1.1.0+. Install: apt-get install libssl-dev])
 ])
+else
+    OPENSSL_LIBS=""
+    OPENSSL_CFLAGS=""
+fi
+AC_SUBST([OPENSSL_LIBS])
+AC_SUBST([OPENSSL_CFLAGS])
 
 PKG_CHECK_MODULES([YAML_CPP], [yaml-cpp >= 0.6.0], [
     AC_DEFINE([HAVE_YAML_CPP], [1], [Define if yaml-cpp is available])
@@ -102,7 +109,7 @@ AC_ARG_ENABLE([debug],
 
 AC_ARG_ENABLE([ssl],
     AS_HELP_STRING([--enable-ssl], [Enable SSL support]),
-    [enable_ssl=$enableval], [enable_ssl=yes])
+    [enable_ssl=$enableval], [enable_ssl=no])
 
 AC_ARG_ENABLE([php-fmp],
     AS_HELP_STRING([--enable-php-fmp], [Enable PHP-FPM support]),
