@@ -111,9 +111,9 @@ AC_ARG_ENABLE([ssl],
     AS_HELP_STRING([--enable-ssl], [Enable SSL support]),
     [enable_ssl=$enableval], [enable_ssl=no])
 
-AC_ARG_ENABLE([php-fmp],
-    AS_HELP_STRING([--enable-php-fmp], [Enable PHP-FPM support]),
-    [enable_php_fmp=$enableval], [enable_php_fmp=yes])
+AC_ARG_ENABLE([php-fpm],
+    AS_HELP_STRING([--enable-php-fpm], [Enable PHP-FPM support]),
+    [enable_php_fpm=$enableval], [enable_php_fpm=yes])
 
 AC_ARG_ENABLE([shared],
     AS_HELP_STRING([--enable-shared], [Build shared libraries]),
@@ -122,8 +122,8 @@ AC_ARG_ENABLE([shared],
 # I'm defining ALL the conditionals that src/Makefile.am actually uses
 # This fixes the "does not appear in AM_CONDITIONAL" errors
 
-# I'm fixing the PHP_FMP conditional (this was the main error)
-AM_CONDITIONAL([PHP_FMP], [test "x$enable_php_fmp" = "xyes"])
+# I'm fixing the PHP_FPM conditional (this was the main error)
+AM_CONDITIONAL([PHP_FPM], [test "x$enable_php_fpm" = "xyes"])
 
 # I'm defining the other conditionals that src/Makefile.am references
 AM_CONDITIONAL([DEBUG], [test "x$enable_debug" = "xyes"])
@@ -157,7 +157,7 @@ if test "x$enable_ssl" = "xyes"; then
     AC_DEFINE([ICY2_SSL_ENABLED], [1], [Define if SSL support is enabled])
 fi
 
-if test "x$enable_php_fmp" = "xyes"; then
+if test "x$enable_php_fpm" = "xyes"; then
     AC_DEFINE([ICY2_PHP_ENABLED], [1], [Define if PHP-FPM support is enabled])
 fi
 
@@ -195,7 +195,7 @@ echo "=================================="
 echo "Version:           $PACKAGE_VERSION"
 echo "Debug build:       $enable_debug"
 echo "SSL support:       $enable_ssl"
-echo "PHP-FPM support:   $enable_php_fmp"
+echo "PHP-FPM support:   $enable_php_fpm"
 echo "Shared libraries:  $enable_shared_libs"
 echo "Platform:          $host_os"
 echo ""
