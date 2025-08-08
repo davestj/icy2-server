@@ -36,6 +36,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <openssl/bn.h>
 
 namespace icy2 {
 
@@ -108,52 +109,33 @@ bool SSLManager::initialize(const SSLContextConfig& config) {
 bool SSLManager::generate_self_signed_certificate(const CertificateGenerationParams& params,
                                                   const std::string& cert_path,
                                                   const std::string& key_path) {
-    // I generate a new RSA key pair
-    EVP_PKEY* pkey = EVP_PKEY_new();
-    if (!pkey) {
-        log_ssl_error("Failed to create EVP_PKEY");
+    // I generate a new RSA key pair using the EVP API
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
+    if (!ctx) {
+        log_ssl_error("Failed to create EVP_PKEY_CTX");
         return false;
     }
-    
-    RSA* rsa = RSA_new();
-    BIGNUM* bne = BN_new();
-    
-    if (!rsa || !bne) {
-        EVP_PKEY_free(pkey);
-        if (rsa) RSA_free(rsa);
-        if (bne) BN_free(bne);
-        log_ssl_error("Failed to create RSA key components");
+
+    if (EVP_PKEY_keygen_init(ctx) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
+        log_ssl_error("Failed to initialize key generation");
         return false;
     }
-    
-    // I set the RSA public exponent
-    if (BN_set_word(bne, RSA_F4) != 1) {
-        EVP_PKEY_free(pkey);
-        RSA_free(rsa);
-        BN_free(bne);
-        log_ssl_error("Failed to set RSA exponent");
+
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, params.key_size) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
+        log_ssl_error("Failed to set RSA key size");
         return false;
     }
-    
-    // I generate the RSA key
-    if (RSA_generate_key_ex(rsa, params.key_size, bne, nullptr) != 1) {
-        EVP_PKEY_free(pkey);
-        RSA_free(rsa);
-        BN_free(bne);
+
+    EVP_PKEY* pkey = nullptr;
+    if (EVP_PKEY_keygen(ctx, &pkey) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
         log_ssl_error("Failed to generate RSA key");
         return false;
     }
-    
-    // I assign the RSA key to the EVP_PKEY
-    if (EVP_PKEY_assign_RSA(pkey, rsa) != 1) {
-        EVP_PKEY_free(pkey);
-        RSA_free(rsa);
-        BN_free(bne);
-        log_ssl_error("Failed to assign RSA key");
-        return false;
-    }
-    
-    BN_free(bne);
+
+    EVP_PKEY_CTX_free(ctx);
     
     // I create a new X.509 certificate
     X509* x509 = X509_new();
@@ -773,7 +755,7 @@ std::vector<std::string> SSLManager::extract_subject_alt_names(X509* cert) {
                 }
             } else if (gen_name->type == GEN_IPADD) {
                 ASN1_STRING* ip_addr = gen_name->d.iPAddress;
-                unsigned char* ip_data = ASN1_STRING_data(ip_addr);
+                const unsigned char* ip_data = ASN1_STRING_get0_data(ip_addr);
                 int ip_len = ASN1_STRING_length(ip_addr);
                 
                 if (ip_len == 4) {
