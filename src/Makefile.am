@@ -40,7 +40,7 @@ AM_CPPFLAGS += -DICY2_SSL_ENABLED
 endif
 
 # I'm adding PHP-FPM support flags when enabled
-if PHP_FMP
+if PHP_FPM
 AM_CPPFLAGS += -DICY2_PHP_ENABLED
 endif
 

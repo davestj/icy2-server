@@ -437,7 +437,7 @@ struct ServerConfig {
     ICYProtocolConfig icy_protocol;
     LoggingConfig logging;
     YPDirectoryConfig yp_directories;
-    PHPConfig php_fmp;
+    PHPConfig php_fpm;
     APIConfig api;
     PerformanceConfig performance;
     DevelopmentConfig development;
