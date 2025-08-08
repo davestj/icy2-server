@@ -141,7 +141,7 @@ void PHPHandler::shutdown() {
         if (elapsed > std::chrono::seconds(30)) {
             // I force close remaining connections after timeout
             for (auto& conn : active_connections_) {
-                close_connection(conn.get());
+                close_connection(conn);
             }
             break;
         }
