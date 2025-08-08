@@ -31,7 +31,8 @@ EXTRA_DIST = \
     LICENSE.md \
     bootstrap.sh \
     autogen.sh \
-    config/mcaster1.yaml
+    config/mcaster1.yaml \
+    scripts/configure_yaml.sh
 
 # I'm defining custom cleaning targets with different levels of thoroughness
 # These targets provide users with multiple options for resetting their build environment
@@ -128,13 +129,18 @@ test-config:
 	@echo "I'm testing the configuration..."
 	./src/icy2-server --test-mode
 
+# I'm adding a configuration helper target
+config:
+	bash scripts/configure_yaml.sh
+
 # Development setup target that includes cleanup and regeneration
 dev-reset: bootstrap-clean
 	@echo "I'm performing complete development environment reset..."
 	@echo "Regenerating autotools build system..."
 	./autogen.sh
 	@echo "Configuring with development options..."
-	./configure --enable-debug --enable-ssl --enable-php-fmp
+
+	./configure --enable-debug --enable-ssl --enable-php-fpm
 	@echo "Development environment reset complete."
 
 # I'm adding a help target that explains all the cleaning options
@@ -165,4 +171,4 @@ clean-help:
 	@echo "  make dev-reset                        # Reset and configure for development"
 	@echo "  make clean && make                    # Quick rebuild"
 
-.PHONY: lib install-lib generate-ssl test-config dev-reset clean-help
+.PHONY: lib install-lib generate-ssl test-config dev-reset clean-help config
