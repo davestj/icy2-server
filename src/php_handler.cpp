@@ -42,8 +42,8 @@ namespace icy2 {
  * I'm implementing the PHP handler constructor
  * This initializes my PHP-FMP integration with proper configuration
  */
-PHPHandler::PHPHandler(const std::string& socket_path, const std::string& document_root, 
-                       const PHPConfiguration& config)
+PHPHandler::PHPHandler(const std::string& socket_path, const std::string& document_root,
+                       const PHPConfig& config)
     : socket_path_(socket_path)
     , document_root_(document_root)
     , config_(config)

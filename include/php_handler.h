@@ -36,6 +36,7 @@
 #include <chrono>
 #include <functional>
 #include <fcgiapp.h>
+#include "common_types.h"
 
 namespace icy2 {
 
@@ -262,7 +263,8 @@ public:
     /**
      * I'm creating the constructor to initialize the PHP handler
      */
-    PHPHandler();
+    PHPHandler(const std::string& socket_path, const std::string& document_root,
+               const PHPConfig& config);
 
     /**
      * I'm creating the destructor to clean up resources
