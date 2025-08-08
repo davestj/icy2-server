@@ -591,12 +591,12 @@ std::string APIHelper::read_file_contents(const std::string& file_path, size_t m
  * This safely writes file contents
  */
 bool APIHelper::write_file_contents(const std::string& file_path, const std::string& contents,
-                                   bool create_directories) {
-    if (create_directories) {
+                                   bool create_dirs) {
+    if (create_dirs) {
         size_t last_slash = file_path.find_last_of('/');
         if (last_slash != std::string::npos) {
             std::string dir_path = file_path.substr(0, last_slash);
-            if (!create_directories(dir_path)) {
+            if (!this->create_directories(dir_path)) {
                 return false;
             }
         }
