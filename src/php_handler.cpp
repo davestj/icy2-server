@@ -77,7 +77,7 @@ PHPHandler::PHPHandler(const std::string& socket_path, const std::string& docume
  * This ensures proper cleanup of resources and connections
  */
 PHPHandler::~PHPHandler() {
-    shutdown();
+    this->shutdown();
 }
 
 /**
