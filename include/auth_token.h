@@ -265,6 +265,9 @@ private:
     bool validate_username(const std::string& username);   // I validate username format
     bool validate_password_strength(const std::string& password); // I check password strength
     std::string get_geolocation(const std::string& ip);    // I get IP geolocation
+    std::string base64_encode(const std::string& input);   // I base64 encode data
+    std::string base64_decode(const std::string& input);   // I base64 decode data
+    std::string hmac_sha256(const std::string& data, const std::string& key); // I compute HMAC-SHA256
 
 public:
     /**
